@@ -35,46 +35,8 @@ def get_textfile_reader(filename, encoding):
         byte_stream = open(filename, "rb")
         return byte_stream.readline
 
-nest_open = {"(", "[", "{"}
-nest_close = {")", "]", "}"}
-
-def tokenize_file(filename, encoding="utf-8"):
-    """Read the file `filename` and return a list of tuples containing
-    a token and its nesting level."""
-    reader = get_textfile_reader(filename, encoding)
-    tok_generator = call_tokenize(reader)
-
-    nesting_level = 0
-    lower_nest_level = False
-    result = []
-    for tok in tok_generator:
-        if lower_nest_level:
-            nesting_level -= 1
-            lower_nest_level = False
-        if tok[1] in nest_open:
-            nesting_level += 1
-        elif tok[1] in nest_close:
-            lower_nest_level = True # Lower for next token.
-        result.append((tok, nesting_level))
-    return result
-
-def untokenize(token_tuple_list, encoding="utf-8"):
-    """Takes a list of token tuples and returns the untokenized text."""
-    return tokenize.untokenize(token_tuple_list).decode(encoding)
-
-def token_to_whitespace(token):
-    """Return a copy of the token with its value set to spaces of the same length."""
-    new_token = list(token)
-    new_token[1] = " "*len(token[1])
-    return tuple(new_token)
-
-def named_token(token):
-    """Return the token with the token type nuber replaced by the type name."""
-    tok, nesting_level = token
-    new_tok = [tok_name[tok[0]]] + list(tok[1:])
-    return (tuple(new_tok), nesting_level)
-
 def print_list_of_token_lists(lst, header=None):
+    print()
     if header is None:
         header = "List of token lists:"
     print(header)
@@ -83,10 +45,19 @@ def print_list_of_token_lists(lst, header=None):
         print()
     print("\n")
 
+#
+# Token class.
+#
+
+ignored_types_set = {tokenize.NL, tokenize.INDENT, tokenize.DEDENT, tokenize.NEWLINE,
+                     tokenize.COMMENT}
+
 class Token(object):
-    """Represents a token from the Python tokenizer.  The tokens are mutable
-    via changing the named attributes such as `type` and `string`.  Accessing
-    `token_tuple` returns a tuple of the current values."""
+    """Represents a token from the Python tokenizer.
+
+    The tokens are mutable via changing the named attributes such as `type` and
+    `string`.  Accessing the `token_tuple` property returns a tuple of the
+    current values."""
     def __init__(self, token_iterable, nesting_level=None):
         token_elements = [t for t in token_iterable]
         self.type = token_elements[0]
@@ -111,13 +82,10 @@ class Token(object):
         current_tuple = (self.type, self.string, self.start, self.end, self.line)
         return current_tuple
 
-
-    ignored_set = {tokenize.NL, tokenize.INDENT, tokenize.DEDENT, tokenize.NEWLINE,
-                   tokenize.COMMENT}
     def to_whitespace(self, empty=False):
         """Convert the string or value of the token to spaces, of the same length
         as the original string.  If `empty` is true then an empty string is used."""
-        if self.type in self.ignored_set:
+        if self.type in ignored_types_set:
             return
         new_token = list(self.token_tuple)
         if empty:
@@ -127,13 +95,20 @@ class Token(object):
         self.string = " " * len(self.string)
 
     def __repr__(self):
-        return "Token({0})".format(self.token_tuple)
+        return self.simple_repr()
+        # The __repr__ is used when lists of tokens are printed, and below is
+        # standard but doesn't look very good in that situation.
+        #return "Token({0})".format(self.token_tuple) #
 
     def __str__(self):
         return self.simple_repr()
 
     def simple_repr(self):
         return "<{0}, {1}, {2}>".format(self.type_name, self.type, repr(self.string))
+
+#
+# TokenList class.
+#
 
 class TokenList(object):
     """Class for a list of `Token` objects.  The interface is similar to that of
@@ -208,7 +183,7 @@ class TokenList(object):
     def split(self, token_type_names=None, token_types=None, token_values=None,
               only_nestlevel=None, max_split=None, isolated_separators=False,
               ignore_separators=False, disjunction=True, no_empty=False,
-              sep_on_left=True, return_splits=False):
+              sep_on_left=False, return_splits=False):
         """Split a list of tokens (with nesting info) into separate `TokenList`
         instances.  Returns a list of the instances.
 
@@ -258,10 +233,10 @@ class TokenList(object):
                     result.append(TokenList(self.token_list[last_split:i]))
                     result.append(TokenList(self.token_list[i:i+1]))
                     last_split = i + 1
-                elif sep_on_left:
+                elif sep_on_left: # Separator on left piece.
                     result.append(TokenList(self.token_list[last_split:i+1]))
                     last_split = i + 1
-                else: # Put separator with the right piece.
+                else: # Separator on the right piece.
                     result.append(TokenList(self.token_list[last_split:i]))
                     last_split = i
                 did_split = True
@@ -306,6 +281,13 @@ class TokenList(object):
         if not self.token_list:
             return "TokenList([])"
         return "TokenList([\n{0}\n])".format(combo)
+
+#
+# Exceptions.
+#
+
+class StripHintsException(Exception):
+    pass
 
 #
 # Run as script, simple test.
