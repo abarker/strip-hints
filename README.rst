@@ -1,0 +1,3 @@
+
+Strip type hints.
+
