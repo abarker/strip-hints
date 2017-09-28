@@ -142,20 +142,35 @@ import ast
 from token_list import (Token, TokenList, print_list_of_token_lists, ignored_types_set,
                         version, StripHintsException)
 
-# TODO:
-# 1) Detect when whited-out code crosses a line break at outer level of nesting
-#    Put a backslash at the end of the breakpoint.
+map_hints_to_empty_strings = True   # Easier to read than spaces, but more changes.
+parse_processed_code_to_ast = True # Whether to parse the processed code.
+try_to_fix_linebreaks_on_whited_tokens = True # Try to put backslash before breaks.
 
 keywords_followed_by_colon = {"else", "try", "finally", "lambda"}
 
-def check_whited_out_line_breaks(token_list, err_msg=None):
+def check_whited_out_line_breaks(token_list):
     """Check that a `TokenList` instance to be whited-out does not include a
     newline (since it would no longer be nested and valid)."""
-    if not err_msg:
-        err_msg = "Line break inside whited-out, unnested part of type hint."
+    # Issues with backslash in untokenize, and two distinct modes:
+    # https://bugs.python.org/issue12691
+    prev_token = None
+    success_fixing = False
     for t in token_list:
         if t.type_name == "NL":
-            raise StripHintsException(err_msg)
+            # First case of the "if" below is disabled for now; haven't figured
+            # out how to insert a backslash.  Issues with backslash in untokenize,
+            # and two distinct modes: https://bugs.python.org/issue12691
+            # Apparently only works in full mode, and doesn't store the "\"
+            # except implicitly in the start and end c
+            if (False and try_to_fix_linebreaks_on_whited_tokens and prev_token and
+                    prev_token.type_name != "NL"):
+                prev_token.string = "\\"
+            else:
+                raise StripHintsException("Line break occurred inside a whited-out,"
+                   " unnested part of type hint.\nThe error occurred on line {0}"
+                   " of file {1}:\n{2}".format(t.start[1], t.filename, t.line))
+                raise StripHintsException(err_msg)
+        prev_token = t
 
 def process_single_parameter(parameter, nesting_level, annassign=False):
     """Process a single parameter in a function definition.  Setting `annassign`
@@ -176,7 +191,7 @@ def process_single_parameter(parameter, nesting_level, annassign=False):
         if annassign:
             check_whited_out_line_breaks(split_on_colon_or_equal[0])
             for t in split_on_colon_or_equal[0]:
-                t.to_whitespace()
+                t.to_whitespace(empty=map_hints_to_empty_strings)
         return
     assert len(split_on_colon_or_equal) == 2
     assert len(splits) == 1
@@ -205,7 +220,7 @@ def process_single_parameter(parameter, nesting_level, annassign=False):
     if annassign:
         check_whited_out_line_breaks(type_def)
     for t in type_def:
-        t.to_whitespace()
+        t.to_whitespace(empty=map_hints_to_empty_strings)
 
 def process_parameters(parameters, nesting_level):
     """Process the parameters to a function."""
@@ -232,15 +247,16 @@ def process_parameters(parameters, nesting_level):
 def process_return_part(return_part):
     """Process the return part of the function definition (which may just be a
     colon if no `->` is used."""
+    if not return_part:
+        return # Error condition, but ignore.
     for i in reversed(range(len(return_part))):
         if return_part[i].string == ":":
             break
     return_type_spec = return_part[:i]
     check_whited_out_line_breaks(return_type_spec)
-    #for j in range(i):
-    #    return_part[j].to_whitespace()
     for t in return_type_spec:
-        t.to_whitespace()
+        #print(t.type_name)
+        t.to_whitespace(empty=map_hints_to_empty_strings)
 
 def process_funcdef_without_suite(funcdef_logical_line):
     """Process the top line of a `funcdef` function definition."""
@@ -272,12 +288,20 @@ if version == 3:
 
 def strip_type_hints_from_file(filename):
     """Main program to strip type hints."""
-    tokens = TokenList(file=filename)
+    #
+    # Get the tokens and split the lines into logical lines, etc.
+    #
+
+    tokens = TokenList(filename=filename, compat_mode=False)
     #print("Original tokens:\n", tokens, sep="")
     logical_lines = tokens.split(token_types=logical_lines_split_types,
                                  token_values=logical_lines_split_values,
                                  isolated_separators=True, no_empty=True)
     #print_list_of_token_lists(logical_lines, "Logical lines:")
+
+    #
+    # Sequentially process the tokens.
+    #
 
     for t_list in logical_lines:
 
@@ -287,8 +311,8 @@ def strip_type_hints_from_file(filename):
             process_funcdef_without_suite(split_on_def[1])
             continue
 
-        # Check for an tfpdef or annassign.  Only recognizes a top-level NAME
-        # that is not a keyword, that starts the line, and is followed by a colon.
+        # Check for an annassign.  Only recognizes a top-level NAME that is not
+        # a keyword, that starts the line, and is followed by a colon.
         non_ignored_toks = [t for t in t_list.iter_with_skips(skip_types=ignored_types_set)]
         #print("Non-ignored toks:", non_ignored_toks)
         if (len(non_ignored_toks) >= 3 and non_ignored_toks[0].type_name == "NAME"
@@ -296,6 +320,11 @@ def strip_type_hints_from_file(filename):
             process_annassign(t_list)
             continue
 
+    #
+    # Return the result.
+    #
+
+    #print("\nProcessed tokens:\n", tokens, sep="")
     #print("\nProcessed program is:")
     return tokens.untokenize()
 
@@ -303,16 +332,30 @@ def strip_type_hints_from_file(filename):
 # Run as script.
 #
 
+#TokenList.__str__ = TokenList.full_repr
+#TokenList.__repr__ = TokenList.full_repr
+
 if __name__ == "__main__":
 
-    generate_ast = True
+    # Process command-line arguments (needs argparse).
+    filename = sys.argv[0]
+    if "--to-empty" in sys.argv:
+        map_hints_to_empty_strings = True
+        sys.argv.remove("--to-empty")
+    if "--no-ast" in sys.argv:
+        parse_processed_code_to_ast = False
+        sys.argv.remove("--no-ast")
 
+    # Process the code.
     processed_code = strip_type_hints_from_file(sys.argv[1])
-    if generate_ast:
+
+    # Parse the code.
+    if parse_processed_code_to_ast:
         if version == 2:
             ast.parse(processed_code.encode("latin-1"))
         else:
-            ast.parse(processed_code)
-    print(processed_code)
+            ast.parse(processed_code, filename=filename)
 
+    # Print to stdout.
+    print(processed_code)
 

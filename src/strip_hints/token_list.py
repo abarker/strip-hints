@@ -58,8 +58,23 @@ class Token(object):
     The tokens are mutable via changing the named attributes such as `type` and
     `string`.  Accessing the `token_tuple` property returns a tuple of the
     current values."""
-    def __init__(self, token_iterable, nesting_level=None):
-        token_elements = [t for t in token_iterable]
+    def __init__(self, token_iterable, nesting_level=None, filename=None,
+                 compat_mode=False):
+        """Pass in an iterable which produces the tokens.  The `nesting_level`
+        and `filename` can optionally be set (and will be saved as attributes).
+
+        If `compat_mode` is true then the tokenizer compatability mode is used.
+        This only uses the first two token components, type and string.  The
+        default is false, and full mode is used with the full five components."""
+        if compat_mode:
+            token_elements = []
+            for count, t in enumerate(token_iterable):
+                token_elements.append(t)
+                if count == 2:
+                    break
+            token_elements += [None]*3
+        else:
+            token_elements = [t for t in token_iterable]
         self.type = token_elements[0]
         self.string = token_elements[1]
         self.start = token_elements[2]
@@ -67,6 +82,8 @@ class Token(object):
         self.line = token_elements[4]
         self.type_name = tok_name[self.type]
         self.nesting_level = nesting_level
+        self.filename = filename
+        self.compat_mode = compat_mode
 
     @property
     def value(self):
@@ -79,7 +96,10 @@ class Token(object):
 
     @property
     def token_tuple(self):
-        current_tuple = (self.type, self.string, self.start, self.end, self.line)
+        if self.compat_mode:
+            current_tuple = (self.type, self.string)
+        else:
+            current_tuple = (self.type, self.string, self.start, self.end, self.line)
         return current_tuple
 
     def to_whitespace(self, empty=False):
@@ -106,6 +126,10 @@ class Token(object):
     def simple_repr(self):
         return "<{0}, {1}, {2}>".format(self.type_name, self.type, repr(self.string))
 
+    def full_repr(self):
+        return "<{0}, {1}, {2}, {3}, {4}, {5}>".format(self.type_name, self.type,
+                                   repr(self.string), self.start, self.end, self.line)
+
 #
 # TokenList class.
 #
@@ -117,36 +141,48 @@ class TokenList(object):
     nest_close = {")", "]", "}"}
 
     def __init__(self, *iterables, **kwargs):
-        """Pass in any number of iterables which return tokens to initialize
-        the `TokenList`.  The returned tokens can be either `Token` instances
-        or iterables of token elements.  The keyword `file=filename.py` can be
-        set to read from a file, in which case any iterables are ignored."""
-        if "file" in kwargs:
-            self.read_from_file(kwargs["file"])
+        """Pass in any number of iterables which return tokens.  They are used
+        sequentially to initialize the `TokenList`.  The tokens returned by
+        these iterators can be either `Token` instances or iterables of token
+        elements.
+
+        The keyword `filename=filename.py` can be set to read from a file, in
+        which case any iterables are ignored.
+
+        The keyword `compat_mode` can be used to create tokens in the
+        tokenizer's compatability mode (two-element token tuples) rather than
+        the default full mode (five-element token tuples).
+
+        Nesting levels are currently only set when reading from a file."""
+        if "compat_mode" in kwargs and kwargs["compat_mode"]:
+            self.compat_mode = True
+        else:
+            self.compat_mode = False
+        if "filename" in kwargs:
+            self.read_from_file(kwargs["filename"])
         else:
             self.set_from_iterables(*iterables)
 
-    def set_from_iterables(self, *iterables):
+    def set_from_iterables(self, *iterables, compat_mode=False):
         """Iterables must each have the same kind of object and iterate to produce
         token tuples or `Token` instances."""
+        if compat_mode:
+            self.compat_mode = compat_mode
         self.token_list = []
         for t_iter in iterables:
             tokens = [t for t in t_iter]
             if not tokens:
                 continue
             if not isinstance(tokens[0], Token):
-                tokens = [Token(t) for t in tokens]
+                tokens = [Token(t, compat_mode=self.compat_mode) for t in tokens]
             self.token_list += tokens
 
-    def _index_tokens(self):
-        # TODO: consider, maybe use this on the tokens...
-        for index, t in enumerate(self.token_list):
-            t.index = index
-
-    def read_from_file(self, filename, encoding="utf-8"):
+    def read_from_file(self, filename, encoding="utf-8", compat_mode=False):
         """Read the file `filename` and return a list of tuples containing
         a token and its nesting level."""
-        # TODO: nesting level is only set here for tokens, make note...
+        # Nesting level is only ever set here, nowhere else as of now.
+        if compat_mode:
+            self.compat_mode = compat_mode
         reader = get_textfile_reader(filename, encoding)
         tok_generator = call_tokenize(reader)
 
@@ -162,9 +198,14 @@ class TokenList(object):
             elif tok[1] in self.nest_close:
                 lower_nest_level = True # Lower for next token.
 
-            self.token_list.append(Token(tok, nesting_level=nesting_level))
+            self.token_list.append(Token(tok, nesting_level=nesting_level,
+                           filename=filename, compat_mode=self.compat_mode))
 
     def untokenize(self, encoding="utf-8"):
+        """Convert the current list of tokens into code and return the code."""
+        if not self.token_list:
+            raise StripHintsException("Attempt to untokenize when the `TokenList`"
+                          " instance has not been initialized with any tokens.")
         token_tuples = [t.token_tuple for t in self.token_list]
         result = tokenize.untokenize(token_tuples).decode(encoding)
         return result
@@ -282,6 +323,13 @@ class TokenList(object):
             return "TokenList([])"
         return "TokenList([\n{0}\n])".format(combo)
 
+    def full_repr(self):
+        combo = "\n".join(t.full_repr() for t in self.token_list)
+        if not self.token_list:
+            return "TokenList([])"
+        return "TokenList([\n{0}\n])".format(combo)
+
+
 #
 # Exceptions.
 #
@@ -295,9 +343,6 @@ class StripHintsException(Exception):
 
 if __name__ == "__main__":
 
-    original_token_tuples = [t[0] for t in tokenize_file(sys.argv[1])]
-    tokens = TokenList(file=sys.argv[1])
-    saved_token_tuples = [t.token_tuple for t in tokens]
-    assert len(original_token_tuples) == len(saved_token_tuples)
+    tokens = TokenList(filename=sys.argv[1])
     print("Untokenized tokens:", tokens.untokenize())
 
