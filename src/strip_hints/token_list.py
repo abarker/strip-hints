@@ -36,6 +36,7 @@ def get_textfile_reader(filename, encoding):
         return byte_stream.readline
 
 def print_list_of_token_lists(lst, header=None):
+    """Used for debugging output."""
     print()
     if header is None:
         header = "List of token lists:"
