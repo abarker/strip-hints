@@ -48,7 +48,7 @@ against whatever version of Python the script is run with.
 The command-line options are as follows:
 
 ``--to-empty``
-   Map deleted code to empty strings rather than spaces.  Easier to read,
+   Map removed code to empty strings rather than spaces.  This is easier to read,
    but does not preserve columns.  Default is false.
 
 ``--no-ast``
@@ -58,6 +58,19 @@ The command-line options are as follows:
 ``--no-colon-move``
    Do not move colons to fix line breaks that occur in the hints for the
    function return type.  Default is false.
+
+Limitations
+-----------
+
+The program currently does not handle line breaks in annotated assignments when
+the code that is removed contains a line break that was formerly nested inside
+brackets.  The program detects the situation and raises an exception.  As a
+workaround if necessary, using an explicit backslash line continuation seems to
+work.
+
+The same situation in the return type specification is handled by moving the
+colon token up to the line with the closing paren.  The situation does not
+occur inside parameter lists because they are always nested inside parentheses.
 
 How it works
 ------------
