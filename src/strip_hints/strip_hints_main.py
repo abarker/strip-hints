@@ -22,6 +22,10 @@ described below.
 Python's grammar
 ----------------
 
+Type hints, PEP-484: https://www.python.org/dev/peps/pep-0484/
+
+Variable annotation, PEP-526: https://www.python.org/dev/peps/pep-0526/
+
 The Python 3.7 grammar for function declarations is given in
 https://docs.python.org/3/reference/grammar.html.  There are three parts that
 we are concerned with:
@@ -86,6 +90,9 @@ Algorithm
    (without an assignment) then turn it into a comment by changing the
    first character to pound sign.  Disallow `NL` tokens in whited-out
    code.
+
+The algorithm does not currently handle annotated expressions in step 3,
+only annotated variables.
 
 """
 

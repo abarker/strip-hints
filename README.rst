@@ -73,6 +73,9 @@ The same situation in the return type specification is handled by moving the
 colon token up to the line with the closing paren.  The situation does not
 occur inside parameter lists because they are always nested inside parentheses.
 
+The program does not currently handle annotated expressions, only annotated
+variables.
+
 How it works
 ------------
 
