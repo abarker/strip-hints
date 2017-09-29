@@ -65,9 +65,9 @@ Limitations
 
 The program currently does not handle line breaks in annotated assignments when
 the code that is removed (the type specification) contains a line break that
-was formerly nested inside brackets.  The program detects the situation and
-raises an exception.  As a workaround if necessary, using an explicit backslash
-line continuation seems to work.
+was formerly nested inside parens, brackets, or braces.  The program detects
+the situation and raises an exception.  As a workaround if necessary, using an
+explicit backslash line continuation seems to work.
 
 The same situation in the return type specification is handled by moving the
 colon token up to the line with the closing paren.  The situation does not
