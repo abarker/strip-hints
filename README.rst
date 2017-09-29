@@ -108,6 +108,8 @@ directory which runs the program on files and shows the diffs.
 Possible enhancements
 ---------------------
 
+* Formal tests.
+  
 * Better argument handling with argparse.
 
 * Import hooks to automatically convert code on import.
@@ -115,7 +117,8 @@ Possible enhancements
 * Generate stubs for Python 2. (Unless the annotated files themselves will work as
   stubs; I haven't checked.)
 
-* Better error warnings (raising with messages rather than failing assertions).
+* Better error warnings (raising exceptions with messages rather than just failing
+  assertions in some places).
 
 * Better packaging.
 
