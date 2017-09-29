@@ -23,7 +23,11 @@ print(xxx); print(e)
 # Below line raises an exception.  Need to insert a backslash to fix it, see code note.
 #tree: Dict[t
 #        ] = 4
+# Explicit line-continuation backslashes seem to work OK:
+tree: Dict[t \
+        ] = 4
 
+# Always OK to break inside nesting level that will be retained.
 chair: Dict[W] = [1,  # c1
                   2]  # c2
 

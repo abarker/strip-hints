@@ -297,6 +297,9 @@ def process_command_line():
     global parse_processed_code_to_ast
     global fix_linebreaks_in_return_by_moving_colon
 
+    if len(sys.argv) < 2:
+        print("Pass in Python code files on the command line.", file=sys.stderr)
+        sys.exit(1)
     filename = sys.argv[0]
     if "--to-empty" in sys.argv:
         map_hints_to_empty_strings = True
@@ -310,6 +313,7 @@ def process_command_line():
 
     # Process the code.
     processed_code = strip_type_hints_from_file(sys.argv[1])
+
 
     # Parse the code.
     if parse_processed_code_to_ast:

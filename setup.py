@@ -31,7 +31,7 @@ setup(
     install_requires=["wheel",],
     url="https://github.com/abarker/strip-hints",
     entry_points = {
-        "console_scripts": ["strip-hints = strip_hints:process_command_line"]
+        "console_scripts": ["strip-hints = strip_hints.strip_hints_main:process_command_line"]
         },
 
     license="MIT",

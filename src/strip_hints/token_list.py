@@ -164,11 +164,14 @@ class TokenList(object):
         else:
             self.set_from_iterables(*iterables)
 
-    def set_from_iterables(self, *iterables, compat_mode=False):
+    def set_from_iterables(self, *iterables, **kwargs):
         """Iterables must each have the same kind of object and iterate to produce
         token tuples or `Token` instances."""
-        if compat_mode:
-            self.compat_mode = compat_mode
+        if "compat_mode" in kwargs:
+            if kwargs["compat_mode"]:
+                self.compat_mode = True
+            else:
+                self.compat_mode = False
         self.token_list = []
         for t_iter in iterables:
             tokens = [t for t in t_iter]
