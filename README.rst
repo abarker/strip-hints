@@ -2,12 +2,13 @@
 strip-hints
 ===========
 
-This package provides an importable function and a command-line command to
-strips type hints from Python code file, leaving runnable code (assuming the
-rest of the code is compatible with the interpreter version).  It tries to make
-as few changes as possible so that line and column numbers in error messages
-for the processed file also correspond to those of the original file.  In most
-cases, with the default options, both the line and column numbers are
+This package provides a command-line command and a corresponding importable
+function which strip type hints from Python code file.  The stripping process
+leaves runnable code, assuming the rest of the code is runnable in the
+interpreter version.  The program tries to make as few changes as possible to
+the processed code so that line and column numbers in error messages for the
+processed code file also correspond to those for the original code file.  In
+most cases, with the default options, both the line and column numbers are
 preserved.
 
 The stripping operation can be used as a preprocessor to allow the new type
