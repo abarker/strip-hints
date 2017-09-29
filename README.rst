@@ -3,7 +3,7 @@ strip-hints
 ===========
 
 This package provides a command-line command and a corresponding importable
-function which strip type hints from Python code file.  The stripping process
+function that strip type hints from Python code file.  The stripping process
 leaves runnable code, assuming the rest of the code is runnable in the
 interpreter version.  The program tries to make as few changes as possible to
 the processed code so that line and column numbers in error messages for the
@@ -25,7 +25,8 @@ Python at the token level.
 Getting, installing, and running the code
 -----------------------------------------
 
-First clone or download the project from this GitHub repository.
+First clone or download the project from `this GitHub repository
+<https://github.com/abarker/strip-hints>`_.
 
 After getting the repo you can just run the file ``strip_hints.py`` in the
 ``bin`` directory of the repo::
@@ -34,7 +35,7 @@ After getting the repo you can just run the file ``strip_hints.py`` in the
 
 Alternately, you can install with pip::
 
-   cd <pathToMainProjectDirectory> # Go to the main project directory.
+   cd <pathToMainProjectDirectory> 
    pip install .
 
 After installing with pip you can run the console script ``strip-hints``::
@@ -110,7 +111,7 @@ Possible enhancements
 
 * Formal tests.
   
-* Better argument handling with argparse.
+* Better argument-handling, help, etc. with argparse.
 
 * Import hooks to automatically convert code on import.
 
@@ -120,7 +121,5 @@ Possible enhancements
 * Better error warnings (raising exceptions with messages rather than just failing
   assertions in some places).
 
-* Better packaging.
-
-* More options.
+* More command options.
 
