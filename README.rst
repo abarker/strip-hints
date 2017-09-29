@@ -115,9 +115,9 @@ Possible enhancements
 * Generate stubs for Python 2. (Unless the annotated files themselves will work as
   stubs; I haven't checked.)
 
+* Better error warnings (raising with messages rather than failing assertions).
+
 * Better packaging.
 
 * More options.
-
-* Better error warnings (raising with messages rather than failing assertions).
 
