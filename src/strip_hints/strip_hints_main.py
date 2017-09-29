@@ -3,8 +3,10 @@
 """
 
 This module contains the function `strip_type_hints_from_file` which is used to
-strip type hints from a Python file.  When run as a script it takes a filename
-argument and arguments and prints the processed, stripped file to stdout.
+strip type hints from a Python file.  It also contains the function
+`process_command_line` which is used to run the program as a script.  When run
+as a script the program takes a filename argument and arguments and prints the
+processed, stripped file to stdout.
 
 In most cases type hints can be stripped to leave valid code by converting both
 the colon or arrow that always starts the hint, and the hint that follows it,
