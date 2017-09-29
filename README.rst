@@ -74,7 +74,7 @@ colon token up to the line with the closing paren.  The situation does not
 occur inside parameter lists because they are always nested inside parentheses.
 
 The program does not currently handle annotated expressions, only annotated
-variables.
+variables and annotated function parameters.
 
 How it works
 ------------
