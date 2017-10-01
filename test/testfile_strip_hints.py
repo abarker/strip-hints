@@ -11,11 +11,10 @@ from __future__ import print_function, division, absolute_import
 # Some of below tests are based on ones here:
 # https://stackoverflow.com/questions/42733877/remove-type-hints-in-python-source-programmatically
 
-
 e : int = lambda x,y,z: lambda: 4*(3+3)
 
 """Triple string"""
-
+ggg = 44
 xxx: int
 xxx: list = ggg
 print(xxx); print(e)
@@ -31,7 +30,7 @@ tree: Dict[t \
 chair: Dict[W] = [1,  # c1
                   2]  # c2
 
-def default_combine_chars_fun_ZZ(elem_list: List[float], egg: int=4) -> List[str]: # TODO: remove annotations test
+def default_combine_chars_fun_ZZ(elem_list: List[float], egg: int=4) -> List[str]: # REM
     pass
 
 def in_fun():
@@ -44,7 +43,7 @@ def in_fun():
     print(xxx)
     var : int = 4; var2 : int =34
 
-@decorator
+#@decorator
 def foo(bar: Dict[T, List[T]], # comment
         baz: Callable[[T], int] = 444 + 4, # comment
         **kwargs) -> List[T]: # comment
@@ -61,4 +60,6 @@ def foo(bar: Dict[T, List[T]],
         **kwargs) -> List[T]:
     pass
 
+assert xxx == 44
+print("done with test")
 
