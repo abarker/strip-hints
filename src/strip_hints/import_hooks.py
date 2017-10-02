@@ -38,11 +38,11 @@ class StripHintsImporter(object):
         module_path = self.module_info[1]
 
         # Use regular loader unless in a dir that was registered.
-        print("doing an import...............")
+        #print("doing an import...............")
         canonical_module_dir_path = os.path.dirname(os.path.realpath(module_path))
-        print("canonical_module_dir_path =", canonical_module_dir_path)
+        #print("canonical_module_dir_path =", canonical_module_dir_path)
         if canonical_module_dir_path not in self.stripper_fun_to_use:
-            print("doing normal import since not in dir....")
+            #print("doing normal import since not in dir....")
             module = imp.load_module(module_name, *self.module_info)
             return module
         else:
@@ -55,7 +55,7 @@ class StripHintsImporter(object):
             # and encode the string in that encoding.
             if version == 2:
                 source = source.encode("utf-8")
-            print("the stripped source is:\n", source, sep="")
+            #print("the stripped source is:\n", source, sep="")
             module = imp.new_module(module_name)
 
             # =============
@@ -81,12 +81,12 @@ class StripHintsImporter(object):
             # module = imp.load_module(module_name, *self.module_info)
         return module
 
-def register_stripper_fun(calling_module_file, stripper_fun):
+def register_stripper_fun(calling_module_file, stripper_fun, py3_also=False):
     """The function called from a module `__init__` or from a script file to
     declare that all later imports from that directory should be processed on
     import to strip type hints.  This is based on the `realpath` of the
     directory of the module."""
-    if version != 2:
+    if version == 3 and not py3_also:
         return
 
     global strip_importer_instance
@@ -95,6 +95,6 @@ def register_stripper_fun(calling_module_file, stripper_fun):
         sys.meta_path.insert(0, strip_importer_instance)
 
     canonical_module_dir = os.path.dirname(os.path.realpath(calling_module_file))
-    print("registering import dir", canonical_module_dir)
+    #print("registering import dir", canonical_module_dir)
     strip_importer_instance.stripper_fun_to_use[canonical_module_dir] = stripper_fun
 
