@@ -22,21 +22,19 @@ In particular, a ``split`` method is used for much of the processing in strippin
 hints.  This module could be useful for people doing other things with
 Python at the token level.
 
-Getting, installing, and running the code
------------------------------------------
+Installing the code
+-------------------
 
-First clone or download the project from `this GitHub repository
+To install from PyPI using pip use::
+
+   pip install strip-hints
+
+To install the most-recent development version first clone or download the
+project from `this GitHub repository
 <https://github.com/abarker/strip-hints>`_.
 
-After getting the repo you can just run the file ``strip_hints.py`` in the
-``bin`` directory of the repo::
-
-   python strip_hints.py your_file_with_hints.py
-
-Alternately, you can install with pip::
-
-   cd <pathToMainProjectDirectory> 
-   pip install .
+Running the code
+----------------
 
 After installing with pip you can run the console script ``strip-hints``::
 
@@ -59,6 +57,50 @@ The command-line options are as follows:
 ``--no-colon-move``
    Do not move colons to fix line breaks that occur in the hints for the
    function return type.  Default is false.
+
+``--only-assigns-and-defs``
+   Only strip annotated assignments and standalone type definitions, keeping
+   function signature annotations.  Python 3.5 and earlier do not implement
+   these; they first appeared in Python 3.6.
+
+If you are using the development repo you can just run the file
+``strip_hints.py`` in the ``bin`` directory of the repo::
+
+   python strip_hints.py your_file_with_hints.py
+
+Alternately, you can install the repo with pip::
+
+   cd <pathToMainProjectDirectory> 
+   pip install .  # use -e for development mode
+
+Automatically running on import
+-------------------------------
+
+A function can be called to automatically strip the type hints from all future
+imports that are in the same directory as the calling module.  For a package
+the function call can be placed in ``__init__.py``, for example.
+
+The function can be called as follows, with options set as desired (these
+are the default settings)::
+
+   from strip_hints import strip_on_import
+   strip_on_import(__file__, to_empty=False, no_ast=False,
+                   no_colon_move=False, only_assigns_and_defs=False,
+                   py3_also=False)
+
+By default Python 3 code is ignored unless ``py3_also`` is set.  The first
+argument is the file path of the calling module.
+
+Calling from a Python program
+-----------------------------
+
+To strip the comments from a source file from within a Python program,
+returning a string containing the code, the functional interface is as follows.
+The option settings here are the default values::
+
+   from strip_hints import strip_file_to_string
+   strip_file_to_string(filename, to_empty=False, no_ast=False,
+                        no_colon_move=False, only_assigns_and_defs=False)
 
 Limitations
 -----------
@@ -115,8 +157,6 @@ Possible enhancements
 * Formal tests.
   
 * Better argument-handling, help, etc. with argparse.
-
-* Import hooks to automatically convert code on import.
 
 * Generate stubs for Python 2. (Unless the annotated files themselves will work as
   stubs; I haven't checked.)

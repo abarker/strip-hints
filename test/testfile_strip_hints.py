@@ -60,6 +60,16 @@ def foo(bar: Dict[T, List[T]],
         **kwargs) -> List[T]:
     pass
 
+# Test NL inside parameter list, should be OK.
+def colon(bar: List[
+       xxx]):
+    pass
+
+# Test colon move due to return type.
+def colon(bar: List[xxx]) -> List[
+        xxx]:
+    pass
+
 assert xxx == 44
 print("done with test")
 

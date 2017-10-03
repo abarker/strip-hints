@@ -127,10 +127,10 @@ from .token_list import (Token, TokenList, print_list_of_token_lists, ignored_ty
                          version, StripHintsException)
 
 # These are the default option values to the command-line interface only.
-map_hints_to_empty_strings = False   # Easier to read than spaces, but more changes.
-parse_processed_code_to_ast = True # Whether to parse the processed code.
-fix_linebreaks_in_return_by_moving_colon = True # Try to put backslash before breaks.
-only_strip_annotated_assignments_and_typedefs = False # Keep fundef stuff, strip rest.
+default_to_empty = False   # Map hints to empty strings.  Easier to read; more changes.
+default_no_ast = False # Whether to parse the processed code to AST.
+default_no_colon_move = False # Whether to move colon to fix linebreaks in return.
+default_only_assigns_and_defs = False # Whether to keep fundef annotations, strip rest.
 
 DEBUG = False # Print debugging information if true.
 
@@ -147,9 +147,9 @@ if version == 3:
 class HintStripper(object):
     """Class holding the main stripping functions and the options as instance state."""
     def __init__(self, to_empty, no_ast, no_colon_move, only_assigns_and_defs):
-        self.map_hints_to_empty_strings = to_empty
-        self.parse_processed_code_to_ast = no_ast
-        self.fix_linebreaks_in_return_by_moving_colon = no_colon_move
+        self.to_empty = to_empty
+        self.no_ast = no_ast
+        self.no_colon_move = no_colon_move
         self.only_assigns_and_defs = only_assigns_and_defs
 
     def check_whited_out_line_breaks(self, token_list, rpar_and_colon=None):
@@ -167,7 +167,7 @@ class HintStripper(object):
         success_fixing = False
         for t in token_list:
             if t.type_name == "NL":
-                if self.fix_linebreaks_in_return_by_moving_colon and rpar_and_colon:
+                if (not self.no_colon_move) and rpar_and_colon:
                     if moved_colon:
                         continue
                     rpar, colon = rpar_and_colon
@@ -177,7 +177,7 @@ class HintStripper(object):
                 else:
                     raise StripHintsException("Line break occurred inside a whited-out,"
                        " unnested part of type hint.\nThe error occurred on line {0}"
-                       " of file {1}:\n{2}".format(t.start[1], t.filename, t.line))
+                       " of the file {1}:\n{2}".format(t.start[0], t.filename, t.line))
                     raise StripHintsException(err_msg)
 
     def process_single_parameter(self, parameter, nesting_level, annassign=False):
@@ -193,7 +193,7 @@ class HintStripper(object):
             if annassign:
                 self.check_whited_out_line_breaks(split_on_colon_or_equal[0])
                 for t in split_on_colon_or_equal[0]:
-                    t.to_whitespace(empty=self.map_hints_to_empty_strings)
+                    t.to_whitespace(empty=self.to_empty)
             return
         assert len(split_on_colon_or_equal) == 2
         assert len(splits) == 1
@@ -217,7 +217,7 @@ class HintStripper(object):
         if annassign:
             self.check_whited_out_line_breaks(type_def)
         for t in type_def:
-            t.to_whitespace(empty=self.map_hints_to_empty_strings)
+            t.to_whitespace(empty=self.to_empty)
 
     def process_parameters(self, parameters, nesting_level):
         """Process the parameters to a function."""
@@ -255,7 +255,7 @@ class HintStripper(object):
         self.check_whited_out_line_breaks(return_type_spec,
                                      rpar_and_colon=(rpar_token, colon_token))
         for t in return_type_spec:
-            t.to_whitespace(empty=self.map_hints_to_empty_strings)
+            t.to_whitespace(empty=self.to_empty)
 
     def process_funcdef_without_suite(self, funcdef_logical_line):
         """Process the top line of a `funcdef` function definition."""
@@ -319,17 +319,17 @@ class HintStripper(object):
 # The main functional interfaces.
 #
 
-def strip_hints(filename, to_empty=False, no_ast=False, no_colon_move=False,
+def strip_file_to_string(filename, to_empty=False, no_ast=False, no_colon_move=False,
                 only_assigns_and_defs=False):
     """Functional interface to strip hints from file `filename`.  The other
     arguments are the same as the command-line arguments, except with
     underscores.  Returns a string containing the stripped code."""
     stripper = HintStripper(to_empty, no_ast, no_colon_move, only_assigns_and_defs)
-    processed_code = stripper.strip_type_hints_from_file(sys.argv[1])
+    processed_code = stripper.strip_type_hints_from_file(filename)
     return processed_code
 
-def strip_on_import(module_filename, to_empty=False, no_ast=False, no_colon_move=False,
-                    only_assigns_and_defs=False, py3_also=False):
+def strip_on_import(calling_module_filename, to_empty=False, no_ast=False,
+                    no_colon_move=False, only_assigns_and_defs=False, py3_also=False):
     """The function can usually just be called with `__file__` for the
     `module_filename` argument.  It runs `strip_hints` with the specified
     options on all files that are imported.
@@ -338,7 +338,7 @@ def strip_on_import(module_filename, to_empty=False, no_ast=False, no_colon_move
     # Could also have an option to load a '.py.stripped' file instead of the
     # actual file, to reduce overhead for actual version not in development.
     stripper = HintStripper(to_empty, no_ast, no_colon_move, only_assigns_and_defs)
-    import_hooks.register_stripper_fun(module_filename,
+    import_hooks.register_stripper_fun(calling_module_filename,
                                        stripper.strip_type_hints_from_file,
                                        py3_also=py3_also)
 
@@ -355,18 +355,18 @@ def process_command_line():
         sys.exit(1)
     filename = sys.argv[0]
 
-    to_empty = map_hints_to_empty_strings
-    no_ast = parse_processed_code_to_ast
-    no_colon_move = fix_linebreaks_in_return_by_moving_colon
-    only_assigns_and_defs = only_strip_annotated_assignments_and_typedefs
+    to_empty = default_to_empty
+    no_ast = default_no_ast
+    no_colon_move = default_no_colon_move
+    only_assigns_and_defs = default_only_assigns_and_defs
     if "--to-empty" in sys.argv:
         to_empty = True
         sys.argv.remove("--to-empty")
     if "--no-ast" in sys.argv:
-        no_ast = False
+        no_ast = True
         sys.argv.remove("--no-ast")
     if "--no-colon-move" in sys.argv:
-        no_colon_move = False
+        no_colon_move = True
         sys.argv.remove("--no-colon-move")
     if "--only-assigns-and-defs" in sys.argv:
         only_assigns_and_defs = True
@@ -377,7 +377,7 @@ def process_command_line():
     processed_code = stripper.strip_type_hints_from_file(sys.argv[1])
 
     # Parse the code into an AST as an error check.
-    if stripper.parse_processed_code_to_ast:
+    if not stripper.no_ast:
         if version == 2:
             ast.parse(processed_code.encode("latin-1")) # Make ASCII, not unicode.
         else:
