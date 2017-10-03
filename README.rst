@@ -61,14 +61,14 @@ The command-line options are as follows:
 ``--only-assigns-and-defs``
    Only strip annotated assignments and standalone type definitions, keeping
    function signature annotations.  Python 3.5 and earlier do not implement
-   these; they first appeared in Python 3.6.
+   these; they first appeared in Python 3.6.  The default is false.
 
 If you are using the development repo you can just run the file
 ``strip_hints.py`` in the ``bin`` directory of the repo::
 
    python strip_hints.py your_file_with_hints.py
 
-Alternately, you can install the repo with pip::
+Alternately, you can install the development repo with pip::
 
    cd <pathToMainProjectDirectory> 
    pip install .  # use -e for development mode
@@ -84,9 +84,9 @@ The function can be called as follows, with options set as desired (these
 are the default settings)::
 
    from strip_hints import strip_on_import
-   strip_on_import(__file__, to_empty=False, no_ast=False,
-                   no_colon_move=False, only_assigns_and_defs=False,
-                   py3_also=False)
+   code_string = strip_on_import(__file__, to_empty=False, no_ast=False,
+                                 no_colon_move=False, only_assigns_and_defs=False,
+                                 py3_also=False)
 
 By default Python 3 code is ignored unless ``py3_also`` is set.  The first
 argument is the file path of the calling module.
@@ -115,8 +115,9 @@ The same situation in the return type specification is handled by moving the
 colon token up to the line with the closing paren.  The situation does not
 occur inside parameter lists because they are always nested inside parentheses.
 
-The program does not currently handle annotated expressions, only annotated
-variables and annotated function parameters.
+The program does not currently handle annotated expressions (e.g.,
+``my_class.x: int`` or ``my_list[2]: int``), only annotated variable names and
+annotated function parameters.
 
 How it works
 ------------
