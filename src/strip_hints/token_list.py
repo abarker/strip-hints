@@ -150,11 +150,18 @@ class TokenList(object):
         The keyword `filename=filename.py` can be set to read from a file, in
         which case any iterables are ignored.
 
+        The keyword `encoding` can be passed in to save as the unicode encoding.
+        The default is UTF-8.
+
         The keyword `compat_mode` can be used to create tokens in the
         tokenizer's compatability mode (two-element token tuples) rather than
         the default full mode (five-element token tuples).
 
         Nesting levels are currently only set when reading from a file."""
+        if "encoding" in kwargs:
+            self.encoding = kwargs["encoding"]
+        else:
+            self.encoding = "utf-8"
         if "compat_mode" in kwargs and kwargs["compat_mode"]:
             self.compat_mode = True
         else:
@@ -165,8 +172,14 @@ class TokenList(object):
             self.set_from_iterables(*iterables)
 
     def set_from_iterables(self, *iterables, **kwargs):
-        """Iterables must each have the same kind of object and iterate to produce
-        token tuples or `Token` instances."""
+        """Pass in any number of iterables.  Each each must iterate to produce
+        token tuples or `Token` instances.
+
+        Keyword options are `encoding` and `compat_mode`."""
+        if "encoding" in kwargs:
+            self.encoding = kwargs["encoding"]
+        else:
+            self.encoding = "utf-8"
         if "compat_mode" in kwargs:
             if kwargs["compat_mode"]:
                 self.compat_mode = True
@@ -185,6 +198,7 @@ class TokenList(object):
         """Read the file `filename` and return a list of tuples containing
         a token and its nesting level."""
         # Nesting level is only ever set here, nowhere else as of now.
+        self.encoding = encoding
         if compat_mode:
             self.compat_mode = compat_mode
         reader = get_textfile_reader(filename, encoding)
@@ -205,14 +219,19 @@ class TokenList(object):
             self.token_list.append(Token(tok, nesting_level=nesting_level,
                            filename=filename, compat_mode=self.compat_mode))
 
-    def untokenize(self, encoding="utf-8"):
-        """Convert the current list of tokens into code and return the code."""
+    def untokenize(self, encoding=None):
+        """Convert the current list of tokens into code and return the code.
+        If no `encoding` is supplied the one stored with the list from when
+        it was created is used."""
+        if not encoding:
+            encoding = self.encoding
         if not self.token_list:
             raise StripHintsException("Attempt to untokenize when the `TokenList`"
                           " instance has not been initialized with any tokens.")
         token_tuples = [t.token_tuple for t in self.token_list]
-        result = tokenize.untokenize(token_tuples).decode(encoding)
-        return result
+        result = tokenize.untokenize(token_tuples)
+        decoded_result = result.decode(encoding)
+        return decoded_result
 
     def iter_with_skips(self, skip_types=None, skip_type_names=None, skip_values=None):
         """Return an iterator which skips tokens matching the given criteria."""

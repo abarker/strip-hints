@@ -1,4 +1,3 @@
-#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
 
@@ -379,7 +378,8 @@ def process_command_line():
     # Parse the code into an AST as an error check.
     if not stripper.no_ast:
         if version == 2:
-            ast.parse(processed_code.encode("latin-1")) # Make ASCII, not unicode.
+            #ast.parse(processed_code.encode("latin-1")) # Make ASCII, not unicode.
+            ast.parse(processed_code.encode("utf-8"))
         else:
             ast.parse(processed_code, filename=filename)
 
