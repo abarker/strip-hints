@@ -65,7 +65,7 @@ def colon(bar: List[
        xxx]):
     pass
 
-# Test colon move due to return type.
+# Test colon move due to NL in return type.
 def colon(bar: List[xxx]) -> List[
         xxx]:
     pass
