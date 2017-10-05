@@ -84,9 +84,8 @@ The function can be called as follows, with options set as desired (these
 are the default settings)::
 
    from strip_hints import strip_on_import
-   code_string = strip_on_import(__file__, to_empty=False, no_ast=False,
-                                 no_colon_move=False, only_assigns_and_defs=False,
-                                 py3_also=False)
+   strip_on_import(__file__, to_empty=False, no_ast=False, no_colon_move=False,
+                   only_assigns_and_defs=False, py3_also=False)
 
 By default Python 3 code is ignored unless ``py3_also`` is set.  The first
 argument is the file path of the calling module.
@@ -99,8 +98,8 @@ returning a string containing the code, the functional interface is as follows.
 The option settings here are the default values::
 
    from strip_hints import strip_file_to_string
-   strip_file_to_string(filename, to_empty=False, no_ast=False,
-                        no_colon_move=False, only_assigns_and_defs=False)
+   code_string = strip_file_to_string(filename, to_empty=False, no_ast=False,
+                                      no_colon_move=False, only_assigns_and_defs=False)
 
 Limitations
 -----------
