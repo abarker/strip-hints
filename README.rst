@@ -3,7 +3,7 @@ strip-hints
 ===========
 
 This package provides a command-line command and a corresponding importable
-function that strip type hints from Python code file.  The stripping process
+function that strips type hints from Python code files.  The stripping process
 leaves runnable code, assuming the rest of the code is runnable in the
 interpreter version.  The program tries to make as few changes as possible to
 the processed code so that line and column numbers in error messages for the
