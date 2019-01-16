@@ -16,11 +16,11 @@ hint syntax to be used in Python 2.  The main intended application is for code
 which is being developed in Python 3 but which needs backward compatibility to
 Python 2.
 
-This project also contains a class ``TokenList`` which allows lists of Python
-tokens to be operated on using an interface similar to that of Python strings.
-In particular, a ``split`` method is used for much of the processing in stripping
-hints.  This module could be useful for people doing other things with
-Python at the token level.
+This project also contains a general-purpose class named ``TokenList`` which
+allows lists of Python tokens to be operated on using an interface similar to
+that of Python strings.  In particular, a ``split`` method is used for much of
+the processing in stripping hints.  This module could be useful for people
+doing other things with Python at the token level.
 
 Installing the code
 -------------------
@@ -114,9 +114,8 @@ The same situation in the return type specification is handled by moving the
 colon token up to the line with the closing paren.  The situation does not
 occur inside parameter lists because they are always nested inside parentheses.
 
-The program does not currently handle annotated expressions (e.g.,
-``my_class.x: int`` or ``my_list[2]: int``), only annotated variable names and
-annotated function parameters.
+The program currently only handles simple annotated expressions (e.g.,
+it handles ``my_class.x: int`` but not ``my_list[2]: int``).
 
 How it works
 ------------
