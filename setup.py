@@ -25,7 +25,7 @@ with codecs.open(os.path.join(current_dir, "README.rst"), encoding="utf-8") as f
 
 setup(
     name="strip-hints",
-    version="0.1.1", # major version, minor version, patch (see PEP440)
+    version="0.1.2", # major version, minor version, patch (see PEP440)
     description="Function and command-line program to strip Python type hints.",
     keywords=["type", "hints", "strip", "annotations", "typing"],
     install_requires=["wheel",],

@@ -1,6 +1,7 @@
 """
 
-These aren't currently handled, but shouldn't be too difficult to add.
+These aren't currently handled (except the simplest dotted access), but shouldn't
+be too difficult to add.
 
 The examples are from PEP-526.
 

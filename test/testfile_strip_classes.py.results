@@ -1,0 +1,18 @@
+
+class Tst:
+    var1      = 99
+
+    class Nested:
+        x      = 4
+
+    def method(self, fff      ):
+        self.xyz      = 100
+        qwerty        = {}
+        self.nested.x       = 3
+        #elf.nested.x : int
+
+    @property
+    def size():
+        size      = -1
+        return size
+

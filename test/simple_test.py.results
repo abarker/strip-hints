@@ -1,0 +1,14 @@
+
+
+def simp(x, y):
+    def q(x     =4):
+        x     =4
+
+#gg : int
+
+def foo(bar                  , egg=lambda x,y: 4*(3+3),
+        egg2     = lambda: (4),
+        baz                     = 444 + 4,
+        **kwargs)           :
+    pass
+

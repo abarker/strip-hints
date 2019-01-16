@@ -146,6 +146,8 @@ if version == 3:
 class HintStripper(object):
     """Class holding the main stripping functions and the options as instance state."""
     def __init__(self, to_empty, no_ast, no_colon_move, only_assigns_and_defs):
+        """Initialize, passing in options for how to process hints (see the default
+        values above for details)."""
         self.to_empty = to_empty
         self.no_ast = no_ast
         self.no_colon_move = no_colon_move
@@ -181,8 +183,9 @@ class HintStripper(object):
 
     def process_single_parameter(self, parameter, nesting_level, annassign=False):
         """Process a single parameter in a function definition.  Setting `annassign`
-        makes slight changes to handle annotated assignments."""
-        # First split on colon or equal.
+        makes slight changes to instead handle annotated assignments."""
+
+        # First split on colon or equal sign.
 
         split_on_colon_or_equal, splits = parameter.split(token_values=":=",
                                                           only_nestlevel=nesting_level,
@@ -201,7 +204,7 @@ class HintStripper(object):
         if splits[0].string == "=":
             return # Parameter is just a var with a regular default value.
 
-        # Now split right part on equal.
+        # Now split the right part on equal.
 
         split_on_equal = right_part.split(token_values="=",
                                           only_nestlevel=nesting_level,
@@ -277,7 +280,7 @@ class HintStripper(object):
         nesting_level = annotated_logical_line[0].nesting_level
         # Almost the same code works as for single parameters in function definitions.
         self.process_single_parameter(annotated_logical_line, nesting_level,
-                                 annassign=True)
+                                      annassign=True)
 
     def strip_type_hints_from_file(self, filename):
         """Main program to strip type hints."""
@@ -304,10 +307,28 @@ class HintStripper(object):
             # a keyword, that starts the line, and is followed by a colon.
             non_ignored_toks = [
                     t for t in t_list.iter_with_skips(skip_types=ignored_types_set)]
-            if (len(non_ignored_toks) >= 3 and non_ignored_toks[0].type_name == "NAME"
-                    and non_ignored_toks[1].string == ":"):
-                self.process_annassign(t_list)
+            if not non_ignored_toks:
                 continue
+
+            # Here we look for annotated variables on the LHS like `var` as well
+            # as `self.var`, etc.  The dotted variables are multiple tokens.  Use
+            # a low-level C-style loop.  TODO: This now handles simple
+            # annotated expressions with dotted access.  Maybe extend to
+            # general annotated expressions by splitting on the colon and examining...
+            i = 0
+            while non_ignored_toks[i].type_name == "NAME":
+                i += 1
+                if i >= len(non_ignored_toks):
+                    break
+                if non_ignored_toks[i].string == ".":
+                    i += 1
+                    if i >= len(non_ignored_toks):
+                        break
+                    continue
+                if non_ignored_toks[i].string == ":":
+                    self.process_annassign(t_list)
+                else:
+                    break
 
         # Get the result and return it.
         if DEBUG: print("\nProcessed tokens:\n", tokens, sep="")
@@ -346,11 +367,11 @@ def strip_on_import(calling_module_filename, to_empty=False, no_ast=False,
 #
 
 def process_command_line():
-    """Process the files on the command line when run as a script or entry point."""
-    # Process the command-line arguments.
+    """Process the file on the command line when run as a script or entry point."""
 
+    # Process the command-line arguments.
     if len(sys.argv) < 2:
-        print("Pass in Python code files on the command line.", file=sys.stderr)
+        print("Pass in Python code file on the command line.", file=sys.stderr)
         sys.exit(1)
     filename = sys.argv[0]
 

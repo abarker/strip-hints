@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+
+Testfile for stripping hints.
+
+"""
+
+from __future__ import print_function, division, absolute_import
+
+# Some of below tests are based on ones here:
+# https://stackoverflow.com/questions/42733877/remove-type-hints-in-python-source-programmatically
+
+e       = lambda x,y,z: lambda: 4*(3+3)
+
+"""Triple string"""
+ggg = 44
+#xx: int
+xxx       = ggg
+print(xxx); print(e)
+
+# Below line raises an exception.  Need to insert a backslash to fix it, see code note.
+#tree: Dict[t
+#        ] = 4
+# Explicit line-continuation backslashes seem to work OK:
+tree        \
+          = 4
+
+# Always OK to break inside nesting level that will be retained.
+chair          = [1,  # c1
+                  2]  # c2
+
+def default_combine_chars_fun_ZZ(elem_list             , egg     =4)             : # REM
+    pass
+
+def in_fun():
+    e=3
+    e=3 # comment
+    #xx: int
+    #xx: int # comment
+    xxx        = ggg
+    xxx        = ggg # comment
+    print(xxx)
+    var       = 4; var2       =34
+
+#@decorator
+def foo(bar                  , # comment
+        baz                     = 444 + 4, # comment
+        **kwargs)           : # comment
+    pass
+
+def foo(bar                  ):
+    pass
+
+def foo(bar                  ,):
+    pass
+
+def foo(bar                  ,
+        baz                     = lambda x, y: (x+3)/7,
+        **kwargs)           :
+    pass
+
+# Test NL inside parameter list, should be OK.
+def colon(bar       
+           ):
+    pass
+
+# Test colon move due to NL in return type.
+def colon(bar           ):         
+            
+    pass
+
+assert xxx == 44
+print("done with test")
+
