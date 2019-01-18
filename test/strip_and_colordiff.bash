@@ -14,6 +14,7 @@ echo "Running strip_and_colordiff.bash with this Python command: '$PYTHON'"
 CONTEXT_LINES=500
 #STRIP_HINTS_ARGS="--to-empty"
 #STRIP_HINTS_ARGS="--no-ast"
+#STRIP_HINTS_ARGS="--only-assigns-and-defs"
 
 TMPFILE="/tmp/test_strip_hints_xxxxx.py"
 
