@@ -64,8 +64,9 @@ The command-line options are as follows:
    these; they first appeared in Python 3.6.  The default is false.
 
 ``--only-test-for-changes``
-   Only test if any changes are made.  If any stripping is done then it prints ``True`` and
-   exits with code 0.  Otherwise it prints ``False`` and exits with code 1.
+   Only test if any changes would be made.  If any stripping would be done then
+   it prints ``True`` and exits with code 0.  Otherwise it prints ``False`` and
+   exits with code 1.
 
 If you are using the development repo you can just run the file
 ``strip_hints.py`` in the ``bin`` directory of the repo::
