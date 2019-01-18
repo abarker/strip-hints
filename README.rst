@@ -104,7 +104,11 @@ The option settings here are the default values::
 
    from strip_hints import strip_file_to_string
    code_string = strip_file_to_string(filename, to_empty=False, no_ast=False,
-                                      no_colon_move=False, only_assigns_and_defs=False)
+                                      no_colon_move=False, only_assigns_and_defs=False,
+                                      only_test_for_changes=False)
+
+If ``only_test_for_changes`` is true then a boolean is returned which is true iff
+some changes would be made.
 
 Limitations
 -----------
