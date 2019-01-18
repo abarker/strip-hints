@@ -1,7 +1,6 @@
 """
 
-These aren't currently handled (except the simplest dotted access), but shouldn't
-be too difficult to add.
+The simple cases are handled except the last one in parentheses.
 
 The examples are from PEP-526.
 
