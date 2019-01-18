@@ -129,9 +129,6 @@ default_only_test_for_changes = False # Print True and exit 0 if changes, otherw
 
 DEBUG = False # Print debugging information if true.
 
-# Some constant values used in the code.
-keywords_followed_by_colon = {"else", "try", "finally", "lambda"}
-
 logical_lines_split_types = [tokenize.NEWLINE, tokenize.ENDMARKER,
                              tokenize.INDENT, tokenize.DEDENT]
 logical_lines_split_values = [";"]
@@ -300,13 +297,13 @@ class HintStripper(object):
                     continue
 
             # Check for an annassign.  Only recognizes a top-level NAME that is not
-            # a keyword, that starts the line, and is followed by a colon.
+            # a keyword, that starts the line.
             non_ignored_toks = [
                     t for t in t_list.iter_with_skips(skip_types=ignored_types_set)]
             if not non_ignored_toks or keyword.iskeyword(non_ignored_toks[0].string):
                 continue
 
-            # Here we look for annotated variables on the LHS.  Low-level C-style loop.
+            # Process the remaining part of the hint.  Low-level C-style loop.
             i = 0
             while (non_ignored_toks[i].type_name == "NAME"):
                 i += 1
@@ -330,14 +327,15 @@ class HintStripper(object):
                         i += 1
                         if i >= len(non_ignored_toks):
                             break
-                        if non_ignored_toks[i].string == "]" and non_ignored_toks[i].nesting_level == 1:
+                        if (non_ignored_toks[i].string == "]" and
+                                non_ignored_toks[i].nesting_level == 1):
                             break
                     i += 1
                     if i >= len(non_ignored_toks):
                         break
 
-                # If we are at a colon but we are not at the end (e.g. not else:,
-                # finally:, or try:) then process as annotated assignment.
+                # If we are at a colon but we are not at the end then process
+                # as annotated assignment (end check is redundant but doesn't hurt).
                 if non_ignored_toks[i].string == ":" and i != len(non_ignored_toks) - 1:
                     self.process_annassign(t_list)
                 break
@@ -352,13 +350,43 @@ class HintStripper(object):
 #
 
 def strip_file_to_string(filename, to_empty=False, no_ast=False, no_colon_move=False,
-                only_assigns_and_defs=False):
-    """Functional interface to strip hints from file `filename`.  The other
-    arguments are the same as the command-line arguments, except with
-    underscores.  Returns a string containing the stripped code."""
+                         only_assigns_and_defs=False, only_test_for_changes=False):
+    """Functional interface to strip hints from file `filename`.
+    The remaining arguments are the same as the command-line arguments, except
+    with underscores.
+
+    Returns a string containing the stripped code unless
+    `only_test_for_changes` is true, in which case a boolean is returned."""
+    # The extra processing of arguments here could be moved to
+    # `HintStripper` and `stripper.strip_hints_from_file`, for consistency.
+    # The strip-on-import function cannot do an AST check as it is.
+
+    # Create the HintStripper and call its stripping method.
     stripper = HintStripper(to_empty, no_ast, no_colon_move, only_assigns_and_defs)
     processed_code = stripper.strip_type_hints_from_file(filename)
-    return processed_code
+
+    # Parse the code into an AST as an error check.
+    if not stripper.no_ast:
+        if version == 2:
+            #ast.parse(processed_code.encode("latin-1")) # Make ASCII, not unicode.
+            ast.parse(processed_code.encode("utf-8"))
+        else:
+            ast.parse(processed_code, filename=filename)
+
+    # Return the result.
+    if not only_test_for_changes:
+        return processed_code
+    else:
+        # Need to tokenize and untokenize because tokenizer's round-trip guarantee does
+        # not guarantee spaces within lines (but usually works).
+        original_tokens = TokenList()
+        original_tokens.read_from_file(filename)
+        original_tokens_untokenized = original_tokens.untokenize()
+
+        if original_tokens_untokenized == processed_code:
+            return False
+        else:
+            return True
 
 def strip_on_import(calling_module_filename, to_empty=False, no_ast=False,
                     no_colon_move=False, only_assigns_and_defs=False, py3_also=False):
@@ -382,17 +410,12 @@ def process_command_line():
     """Process the file on the command line when run as a script or entry point."""
 
     # Process the command-line arguments.
-    if len(sys.argv) < 2:
-        print("Pass in Python code file on the command line.", file=sys.stderr)
-        sys.exit(1)
-    filename = sys.argv[0]
-    code_file = sys.argv[1]
-
     to_empty = default_to_empty
     no_ast = default_no_ast
     no_colon_move = default_no_colon_move
     only_assigns_and_defs = default_only_assigns_and_defs
     only_test_for_changes = default_only_test_for_changes
+
     if "--to-empty" in sys.argv:
         to_empty = True
         sys.argv.remove("--to-empty")
@@ -409,36 +432,24 @@ def process_command_line():
         only_test_for_changes = True
         sys.argv.remove("--only-test-for-changes")
 
-    # Create the HintStripper and call its stripping method.
-    stripper = HintStripper(to_empty, no_ast, no_colon_move, only_assigns_and_defs)
-    processed_code = stripper.strip_type_hints_from_file(code_file)
+    if len(sys.argv) < 2:
+        print("Pass in Python code file on the command line.", file=sys.stderr)
+        sys.exit(1)
+    code_file = sys.argv[1]
 
-    # Parse the code into an AST as an error check.
-    if not stripper.no_ast:
-        if version == 2:
-            #ast.parse(processed_code.encode("latin-1")) # Make ASCII, not unicode.
-            ast.parse(processed_code.encode("utf-8"))
-        else:
-            ast.parse(processed_code, filename=filename)
+    processed_code = strip_file_to_string(code_file, to_empty, no_ast, no_colon_move,
+                                          only_assigns_and_defs, only_test_for_changes)
 
-    # Print to stdout or compare with original file.
     if not only_test_for_changes:
         print(processed_code, end="")
     else:
-        # Need to tokenize and untokenize because tokenizer's round-trip guarantee does
-        # not guarantee spaces within lines (but usually works).
-        original_tokens = TokenList()
-        original_tokens.read_from_file(code_file)
-        original_tokens_untokenized = original_tokens.untokenize()
-
-        if original_tokens_untokenized == processed_code:
-            print("False")
-            exit_code = 1
-        else:
+        if processed_code: # The variable processed_code will be boolean in this case.
             print("True")
             exit_code = 0
+        else:
+            print("False")
+            exit_code = 1
         sys.exit(exit_code)
-
 
 if __name__ == "__main__":
 
