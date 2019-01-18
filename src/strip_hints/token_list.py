@@ -277,7 +277,7 @@ class TokenList(object):
                 break
 
             tok = self.token_list[i]
-            if only_nestlevel != None and tok.nesting_level != only_nestlevel:
+            if only_nestlevel is not None and tok.nesting_level != only_nestlevel:
                 continue
             if disjunction:
                 do_split = ((token_type_names and tok.type_name in token_type_names)

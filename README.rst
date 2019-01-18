@@ -63,6 +63,10 @@ The command-line options are as follows:
    function signature annotations.  Python 3.5 and earlier do not implement
    these; they first appeared in Python 3.6.  The default is false.
 
+``--only-test-for-changes``
+   Only test if any changes are made.  If any stripping is done then it prints ``True`` and
+   exits with code 0.  Otherwise it prints ``False`` and exits with code 1.
+
 If you are using the development repo you can just run the file
 ``strip_hints.py`` in the ``bin`` directory of the repo::
 
@@ -115,7 +119,7 @@ colon token up to the line with the closing paren.  The situation does not
 occur inside parameter lists because they are always nested inside parentheses.
 
 The program currently only handles simple annotated expressions (e.g.,
-it handles ``my_class.x: int`` but not ``my_list[2]: int``).
+it handles ``my_class.x: int`` and ``my_list[2]: int`` but not ``(x): int``).
 
 How it works
 ------------

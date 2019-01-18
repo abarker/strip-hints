@@ -82,16 +82,15 @@ Algorithm
       equals.  If the split is on a colon then split the right part again on
       equals.  White out the type declaration part.
 
-3. While sequentially looking for function definitions, also look for a
-   logical line that starts with a `NAME` token, followed immediately by
-   a colon.  Process these lines using the same method as was used for
-   individual function parameters.  If it is only a type definition
-   (without an assignment) then turn it into a comment by changing the
-   first character to pound sign.  Disallow `NL` tokens in whited-out
-   code.
+3. While sequentially looking for function definitions, also look for a logical
+   line that starts with a `NAME` token, followed immediately by a colon (or a
+   simple annotated expression and then a colon).  Process these lines using the same
+   method as was used for individual function parameters.  If it is only a type
+   definition (without an assignment) then turn it into a comment by changing the
+   first character to pound sign.  Disallow `NL` tokens in whited-out code.
 
-The algorithm does not currently handle annotated expressions in step 3,
-only annotated variables.
+The algorithm only handles simple annotated expressions in step 3 that start
+with a name, e.g., not ones like `(x) : int`.
 
 """
 
@@ -101,12 +100,7 @@ only annotated variables.
 # 1) Turning annotated into comments you need to check for line breaks and do
 #    all the lines, or just go back to mapping to empty.
 #
-# 2) To handle most annotated expressions, 1) ignore parens when looking for
-#    a NAME and 2) when looking for a top-level-only colon ignore attribute access
-#    dots, attribute NAMEs, and nested brackets and contents (only brackets) after
-#    a name.  Abort if you find a keyword.
-#
-# 3) With strip-on-import, different projects cannot currently have different state,
+# 2) With strip-on-import, different projects cannot currently have different state,
 #    at least any modules they load will be stripped.  The module loader should look
 #    at the path and different strippers to different project dirs.  Also avoids
 #    stripping the stdlib, etc.
@@ -121,6 +115,7 @@ import io
 import os
 import collections
 import ast
+import keyword
 from . import import_hooks
 from .token_list import (Token, TokenList, print_list_of_token_lists, ignored_types_set,
                          version, StripHintsException)
@@ -130,6 +125,7 @@ default_to_empty = False   # Map hints to empty strings.  Easier to read; more c
 default_no_ast = False # Whether to parse the processed code to AST.
 default_no_colon_move = False # Whether to move colon to fix linebreaks in return.
 default_only_assigns_and_defs = False # Whether to keep fundef annotations, strip rest.
+default_only_test_for_changes = False # Print True and exit 0 if changes, otherwise False and 1.
 
 DEBUG = False # Print debugging information if true.
 
@@ -307,28 +303,44 @@ class HintStripper(object):
             # a keyword, that starts the line, and is followed by a colon.
             non_ignored_toks = [
                     t for t in t_list.iter_with_skips(skip_types=ignored_types_set)]
-            if not non_ignored_toks:
+            if not non_ignored_toks or keyword.iskeyword(non_ignored_toks[0].string):
                 continue
 
-            # Here we look for annotated variables on the LHS like `var` as well
-            # as `self.var`, etc.  The dotted variables are multiple tokens.  Use
-            # a low-level C-style loop.  TODO: This now handles simple
-            # annotated expressions with dotted access.  Maybe extend to
-            # general annotated expressions by splitting on the colon and examining...
+            # Here we look for annotated variables on the LHS.  Low-level C-style loop.
             i = 0
-            while non_ignored_toks[i].type_name == "NAME":
+            while (non_ignored_toks[i].type_name == "NAME"):
                 i += 1
                 if i >= len(non_ignored_toks):
                     break
+
+                # Skip past all dotted attributes after the initial name, e.g.
+                #    var.x.y: int
                 if non_ignored_toks[i].string == ".":
                     i += 1
                     if i >= len(non_ignored_toks):
                         break
                     continue
-                if non_ignored_toks[i].string == ":":
+
+                # Past this point the loop always breaks.
+
+                # Skip past all stuff inside brackets after the initial name, e.g.
+                #   d["key"]: int
+                elif non_ignored_toks[i].string == "[":
+                    while True:
+                        i += 1
+                        if i >= len(non_ignored_toks):
+                            break
+                        if non_ignored_toks[i].string == "]" and non_ignored_toks[i].nesting_level == 1:
+                            break
+                    i += 1
+                    if i >= len(non_ignored_toks):
+                        break
+
+                # If we are at a colon but we are not at the end (e.g. not else:,
+                # finally:, or try:) then process as annotated assignment.
+                if non_ignored_toks[i].string == ":" and i != len(non_ignored_toks) - 1:
                     self.process_annassign(t_list)
-                else:
-                    break
+                break
 
         # Get the result and return it.
         if DEBUG: print("\nProcessed tokens:\n", tokens, sep="")
@@ -374,11 +386,13 @@ def process_command_line():
         print("Pass in Python code file on the command line.", file=sys.stderr)
         sys.exit(1)
     filename = sys.argv[0]
+    code_file = sys.argv[1]
 
     to_empty = default_to_empty
     no_ast = default_no_ast
     no_colon_move = default_no_colon_move
     only_assigns_and_defs = default_only_assigns_and_defs
+    only_test_for_changes = default_only_test_for_changes
     if "--to-empty" in sys.argv:
         to_empty = True
         sys.argv.remove("--to-empty")
@@ -391,10 +405,13 @@ def process_command_line():
     if "--only-assigns-and-defs" in sys.argv:
         only_assigns_and_defs = True
         sys.argv.remove("--only-assigns-and-defs")
+    if "--only-test-for-changes" in sys.argv:
+        only_test_for_changes = True
+        sys.argv.remove("--only-test-for-changes")
 
     # Create the HintStripper and call its stripping method.
     stripper = HintStripper(to_empty, no_ast, no_colon_move, only_assigns_and_defs)
-    processed_code = stripper.strip_type_hints_from_file(sys.argv[1])
+    processed_code = stripper.strip_type_hints_from_file(code_file)
 
     # Parse the code into an AST as an error check.
     if not stripper.no_ast:
@@ -404,8 +421,23 @@ def process_command_line():
         else:
             ast.parse(processed_code, filename=filename)
 
-    # Print to stdout.
-    print(processed_code, end="")
+    # Print to stdout or compare with original file.
+    if not only_test_for_changes:
+        print(processed_code, end="")
+    else:
+        # Need to tokenize and untokenize because tokenizer's round-trip guarantee does
+        # not guarantee spaces within lines (but usually works).
+        original_tokens = TokenList()
+        original_tokens.read_from_file(code_file)
+        original_tokens_untokenized = original_tokens.untokenize()
+
+        if original_tokens_untokenized == processed_code:
+            print("False")
+            exit_code = 1
+        else:
+            print("True")
+            exit_code = 0
+        sys.exit(exit_code)
 
 
 if __name__ == "__main__":

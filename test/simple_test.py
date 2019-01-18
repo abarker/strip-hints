@@ -12,3 +12,8 @@ def foo(bar: Dict[T, List[T]], egg=lambda x,y: 4*(3+3),
         **kwargs) -> List[T]:
     pass
 
+m = 2
+string = 4
+if m == ")": string += m
+else: string = m + string
+
