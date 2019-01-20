@@ -359,7 +359,8 @@ def strip_file_to_string(filename, to_empty=False, no_ast=False, no_colon_move=F
     `only_test_for_changes` is true, in which case a boolean is returned."""
     # TODO: The extra processing of arguments here could be moved to
     # `HintStripper` and `stripper.strip_hints_from_file`, for consistency.
-    # As it is the strip-on-import function cannot do an AST check.
+    # As it is the strip-on-import function cannot do an AST check (but one
+    # will be done anyway in parsing the code).
 
     # Create the HintStripper and call its stripping method.
     stripper = HintStripper(to_empty, no_ast, no_colon_move, only_assigns_and_defs)
