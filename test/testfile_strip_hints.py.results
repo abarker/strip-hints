@@ -8,6 +8,8 @@ Testfile for stripping hints.
 
 from __future__ import print_function, division, absolute_import
 
+unicode_str = u"Protection™" # Test unicode in file.
+
 # Some of below tests are based on ones here:
 # https://stackoverflow.com/questions/42733877/remove-type-hints-in-python-source-programmatically
 

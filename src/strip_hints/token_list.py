@@ -12,12 +12,18 @@ import sys
 import tokenize
 import io
 import collections
+import codecs
+import locale
 
 tok_name = tokenize.tok_name # A dict mapping token values to names.
 version = sys.version_info[0]
 
 if version == 2:
     call_tokenize = tokenize.generate_tokens
+    # See pages below for mod to sys.stdout to avoid unicode errors.
+    #http://blog.mathieu-leplatre.info/python-utf-8-print-fails-when-redirecting-stdout.html
+    #https://wiki.python.org/moin/PrintFails
+    sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout)
 else:
     call_tokenize = tokenize.tokenize
 
@@ -230,6 +236,8 @@ class TokenList(object):
                           " instance has not been initialized with any tokens.")
         token_tuples = [t.token_tuple for t in self.token_list]
         result = tokenize.untokenize(token_tuples)
+        if version == 2: # Decoding below causes a unicode error in Python 2.
+            return result
         decoded_result = result.decode(encoding)
         return decoded_result
 
