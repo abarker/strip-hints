@@ -7,6 +7,9 @@ modules when they are loaded.  Note the use of `imp` is deprecated for Python 3.
 
 This example code was very helpful: https://github.com/aroberge/splore
 
+This code shows easy way with importlib (but no backport to 2.7).
+   https://stackoverflow.com/questions/43571737/how-to-implement-an-import-hook-that-can-modify-the-source-code-on-the-fly-using/43573798#43573798
+
 """
 
 from __future__ import print_function, division, absolute_import
@@ -24,25 +27,49 @@ class StripHintsImporter(object):
 
     def find_module(self, module_name, path=None):
         """Find the module with the given name.  Uses `path`, or `sys.path` if
-        it is omitted.  Returns `(file, pathname, description)`.
+        it is omitted.  Returns `(file, pathname, description)`."""
+        print("\n", "="*20, sep="")
+        print("FIND module_name:", module_name)
+        print("path passed in is", path)
+        print("="*20)
+        split_module_name = module_name.split(".")
+        first_name = split_module_name[0]
+        rest_name = split_module_name[1:]
+        print("first_name, rest_name", first_name, rest_name)
 
-        As of now UTF-8 encoding is assumed."""
-        self.module_info = imp.find_module(module_name, path)
+        full_name = first_name
+        file_object, pathname, description = imp.find_module(first_name)
+        self.module_info = file_object, pathname, description
+        self.load_module(first_name)
+        for name in rest_name:
+            full_name += "." + name
+            path = [pathname]
+            print("BEFORE calling imp.find_module for name", name, path)
+            file_object, pathname, description = imp.find_module(name, path)
+            self.module_info = file_object, pathname, description
+            print("loading module", full_name)
+            self.load_module(full_name)
+
         return self
 
     def load_module(self, module_name):
         """Load the module."""
         if module_name in sys.modules:
+            print("returning cached module")
             return sys.modules[module_name]
 
         module_path = self.module_info[1]
+        print("\n", "="*20, sep="")
+        print("LOAD module path:", module_path)
+        print(self.module_info)
+        print("="*20)
 
         # Use regular loader unless in a dir that was registered.
-        #print("doing an import...............")
         canonical_module_dir_path = os.path.dirname(os.path.realpath(module_path))
         #print("canonical_module_dir_path =", canonical_module_dir_path)
         if canonical_module_dir_path not in self.stripper_fun_to_use:
             #print("doing normal import since not in dir....")
+            print(module_name, self.module_info)
             module = imp.load_module(module_name, *self.module_info)
             return module
         else:
@@ -66,10 +93,12 @@ class StripHintsImporter(object):
 
             ispkg = self.module_info[0] is None and self.module_info[1] is not None
             if ispkg:
+                print("PACKAGE, __package__ is", module_path)
                 mod.__path__ = []
                 mod.__package__ = module_path
             else:
                 mod.__package__ = module_path.rpartition('.')[0]
+                print("NONPACKAGE, __package__ is", mod.__package__)
             # ==============
 
             sys.modules[module_name] = module

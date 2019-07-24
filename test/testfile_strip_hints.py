@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -*- FAILS_coding_PY2: utf-8 -*-
 """
 
 Testfile for stripping hints.
@@ -9,6 +9,7 @@ Testfile for stripping hints.
 from __future__ import print_function, division, absolute_import
 
 unicode_str = u"Protection™" # Test unicode in file.
+print(unicode_str)
 
 # Some of below tests are based on ones here:
 # https://stackoverflow.com/questions/42733877/remove-type-hints-in-python-source-programmatically
