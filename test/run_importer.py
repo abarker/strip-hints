@@ -9,7 +9,7 @@ from __future__ import print_function, division, absolute_import
 
 import strip_hints
 
-strip_hints.strip_on_import(__file__, py3_also=True)
+strip_hints.strip_on_import(__file__, py3_also=False)
 
 import testfile_strip_hints
 

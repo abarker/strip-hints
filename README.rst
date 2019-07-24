@@ -92,8 +92,9 @@ are the default settings)::
    strip_on_import(__file__, to_empty=False, no_ast=False, no_colon_move=False,
                    only_assigns_and_defs=False, py3_also=False)
 
-By default Python 3 code is ignored unless ``py3_also`` is set.  The first
-argument is the file path of the calling module.
+By default Python 3 code is ignored unless ``py3_also`` is set (but currently
+``py3_also`` *must* be false with this option).  The first argument is the file
+path of the calling module.
 
 Calling from a Python program
 -----------------------------

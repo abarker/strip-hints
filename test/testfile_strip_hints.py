@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
-# -*- FAILS_coding_PY2: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 
 Testfile for stripping hints.
 
+This code doesn't really run in Python 3 unless it is stripped; it just uses
+typing syntax to test stripping.
+
 """
 
 from __future__ import print_function, division, absolute_import
+from typing import Dict, List
+Dict = {0:4} #  Dummy var, used in example code.
+t = W = 0 # Dummies.
 
 unicode_str = u"Protection™" # Test unicode in file.
 print(unicode_str)

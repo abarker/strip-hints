@@ -1,6 +1,7 @@
 """
 
 The simple cases are handled except the last one in parentheses.
+Run without syntax checking to check vs. the result file.
 
 The examples are from PEP-526.
 
