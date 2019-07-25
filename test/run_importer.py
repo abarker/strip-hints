@@ -13,6 +13,9 @@ strip_hints.strip_on_import(__file__, py3_also=False)
 
 import testfile_strip_hints
 
+from simple_test import m
+assert m == 2
+
 # Some general import tests below.
 import sys
 import xml.etree.ElementTree

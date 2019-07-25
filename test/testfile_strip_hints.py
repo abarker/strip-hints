@@ -10,7 +10,6 @@ typing syntax to test stripping.
 """
 
 from __future__ import print_function, division, absolute_import
-from typing import Dict, List
 Dict = {0:4} #  Dummy var, used in example code.
 t = W = 0 # Dummies.
 

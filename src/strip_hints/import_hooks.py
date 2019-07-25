@@ -93,6 +93,7 @@ class StripHintsImporter(object):
             # =========================================
 
             sys.modules[module_name] = module
+            # https://stackoverflow.com/questions/30621772/what-encoding-does-the-exec-function-assume
             exec(source, module.__dict__)
         except Exception as e:
             print("strip_hints error in loading module {0}: {1}."
