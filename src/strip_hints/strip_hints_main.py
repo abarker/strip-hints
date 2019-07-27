@@ -116,9 +116,12 @@ import os
 import collections
 import ast
 import keyword
-from . import import_hooks
 from .token_list import (Token, TokenList, print_list_of_token_lists, ignored_types_set,
                          version, StripHintsException)
+if version == 2:
+    from . import import_hooks
+else:
+    from . import import_hooks_py3 as import_hooks
 
 # These are the default option values to the command-line interface only.
 default_to_empty = False   # Map hints to empty strings.  Easier to read; more changes.

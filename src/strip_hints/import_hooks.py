@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 
@@ -6,9 +5,6 @@ Code to set up import hooks for Python 2 to automatically strip hints from
 modules when they are loaded.  Note the use of `imp` is deprecated for Python 3.
 
 This example code was very helpful: https://github.com/aroberge/splore
-
-This code shows an easier way with importlib (but no backport to 2.7):
-   https://stackoverflow.com/questions/43571737/how-to-implement-an-import-hook-that-can-modify-the-source-code-on-the-fly-using/43573798#43573798
 
 """
 
