@@ -6,6 +6,11 @@ Changelog
 0.1.6 (2019-6-16)
 ------------------
 
+Added an `importlib` stripper for strip-on-import for Python 3.
+
+0.1.6 (2019-6-16)
+------------------
+
 Fixed strip-on-import for Python 2.
 
 0.1.5 (2019-6-16)
@@ -13,7 +18,6 @@ Fixed strip-on-import for Python 2.
 
 Fixed a unicode decoding bug when running under Python 2 on a file containing a
 unicode string.
-
 
 0.1.4 (2019-1-18)
 ------------------
