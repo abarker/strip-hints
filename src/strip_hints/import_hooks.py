@@ -6,6 +6,9 @@ modules when they are loaded.  Note the use of `imp` is deprecated for Python 3.
 
 This example code was very helpful: https://github.com/aroberge/splore
 
+Note: Consider also this `importlib` backport to Python 2:
+    https://pypi.org/project/importlib2/
+
 """
 
 from __future__ import print_function, division, absolute_import
