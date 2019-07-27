@@ -67,8 +67,8 @@ class Token(object):
     current values."""
     def __init__(self, token_iterable, nesting_level=None, filename=None,
                  compat_mode=False):
-        """Pass in an iterable which produces the tokens.  The `nesting_level`
-        and `filename` can optionally be set (and will be saved as attributes).
+        """Pass in an iterable which produces the token elements.  The `nesting_level`
+        and `filename` can optionally be set and will simply be saved as attributes.
 
         If `compat_mode` is true then the tokenizer compatability mode is used.
         This only uses the first two token components, type and string.  The
@@ -179,7 +179,7 @@ class TokenList(object):
 
     def set_from_iterables(self, *iterables, **kwargs):
         """Pass in any number of iterables.  Each each must iterate to produce
-        token tuples or `Token` instances.
+        either token tuples or `Token` instances.
 
         Keyword options are `encoding` and `compat_mode`."""
         if "encoding" in kwargs:
@@ -262,8 +262,8 @@ class TokenList(object):
         Lists of properties of the tokens to split on are passed to the method.
         The resulting splits will be on tokens which satisfy any of the
         criteria.  If `disjunction` is false then the conjunction of the
-        separate lists is used (but disjunction is still used within any list,
-        since those properties are mutually exclusive).
+        separate lists is used instead (but disjunction is still used within any,
+        list since those properties are mutually exclusive).
 
         Separators are part of the `TokenList` to the left unless
         `isolated_separators` is true, in which case separators have their own

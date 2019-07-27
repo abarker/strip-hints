@@ -41,11 +41,11 @@ Some things to note about the grammar:
 
 * The `def` keyword is sufficient to recognize a function.
 
-* Function definitions and assignments are never inside braces (parens, brackets,
-  or curly braces).  We are only interested in top-level commas, colons, function
-  argument list parens, and arrows as delimiters.  So everything nested inside
-  parens, brackets, and curly braces can either be copied over directly (default
-  values) or converted to whitespace (type hints).
+* Function definitions and assignment statements are never inside braces
+  (parens, brackets, or curly braces).  We are only interested in top-level
+  commas, colons, parens of function parameter lists, and arrows as delimiters.
+  So everything nested inside parens, brackets, and curly braces can either be
+  copied over directly (default values) or converted to whitespace (type hints).
 
 * Lambdas take `varargslist`, not `typedargslist` and so they cannot have type
   hints.  They also cannot have assignments inside them.
@@ -57,11 +57,16 @@ Some things to note about the grammar:
   only occur as default value assignments.
 
 * Colons in the code, after a `NAME` that starts a logical line and in the
-  outer nesting level for that line, only occur for keywords and for type
-  definitions and annotated assignments.
+  outer nesting level for that line, only occur for keywords, type definitions
+  and annotated assignments.
 
 Algorithm
 ---------
+
+Note that the token type NEWLINE delimits logical lines, while NL delimits the
+remaining, non-logical linebreaks.
+
+0. Tokenize the code into a TokenList.
 
 1. Split into logical lines on `NEWLINE`, `ENDMARKER`, `INDENT`, and `DEDENT`
    tokens.
@@ -69,25 +74,26 @@ Algorithm
 2. Sequentially split on tokens with string value `"def"` to find function
    definitions.
 
-   a. Split on top-nesting-level parentheses to get the arguments and the
+   a. Split on top-nesting-level parentheses to get the parameters and the
       return type part.
 
    b. White out the return type part if present, up to colon.  Disallow
       `NL` tokens in the whited-out code.
 
-   c. Split the arguments on top-nesting-level comma tokens, ignoring any
-      which are inside lambda arguments.
+   c. Split the parameters on top-nesting-level comma tokens, ignoring any
+      which are inside lambda parameters.
 
-   d. For each argument, split it once on either top-level colon or top-level
-      equals.  If the split is on a colon then split the right part again on
-      equals.  White out the type declaration part.
+   d. For each parameter, split it once on either top-level colon or top-level
+      equal sign.  If the split is on a colon then split the right part again on
+      equal sign.  White out the type declaration part.
 
 3. While sequentially looking for function definitions, also look for a logical
-   line that starts with a `NAME` token, followed immediately by a colon (or a
-   simple annotated expression and then a colon).  Process these lines using the same
+   line that starts with a `NAME` token, followed immediately by a colon (i.e., a
+   simple annotated variable).  Process these lines using the same
    method as was used for individual function parameters.  If it is only a type
    definition (without an assignment) then turn it into a comment by changing the
    first character to pound sign.  Disallow `NL` tokens in whited-out code.
+   (TODO: update description for current code handling simple annotated expressions.)
 
 The algorithm only handles simple annotated expressions in step 3 that start
 with a name, e.g., not ones like `(x) : int`.
@@ -96,17 +102,6 @@ with a name, e.g., not ones like `(x) : int`.
 
 # TODO:
 # 0) Document new function interfaces and options in README.
-#
-# 1) Turning annotated into comments you need to check for line breaks and do
-#    all the lines, or just go back to mapping to empty.
-#
-# 2) With strip-on-import, different projects cannot currently have different state,
-#    at least any modules they load will be stripped.  The module loader should look
-#    at the path and different strippers to different project dirs.  Also avoids
-#    stripping the stdlib, etc.
-
-# Note that the token type NEWLINE delimits logical lines, while NL delimits
-# the remaining, non-logical linebreaks.
 
 from __future__ import print_function, division, absolute_import
 import sys
