@@ -4,7 +4,7 @@
 Code to set up import hooks for Python 3 to automatically strip hints from
 modules when they are loaded.
 
-This code is based on the example from here:
+The import hook part of the code is based on an example from here:
    https://stackoverflow.com/questions/43571737/how-to-implement-an-import-hook-that-can-modify-the-source-code-on-the-fly-using/43573798#43573798
 
 """
@@ -22,7 +22,7 @@ version = sys.version_info[0]
 stripper_funs = {}
 registered = False
 
-class StripHintsLoader(SourceLoader):
+class StripHintsSourceLoader(SourceLoader):
     def __init__(self, fullname, path):
         self.fullname = fullname
         self.path = path
@@ -31,8 +31,8 @@ class StripHintsLoader(SourceLoader):
         return self.path
 
     def get_data(self, module_path):
-        """exec_module is already defined for us, we just have to provide a way
-        of getting the source code of the module"""
+        """Get the source code and modify it if necessary; `exec_module` is already
+        defined."""
         assert not os.path.isdir(module_path) # Assume a file module is passed.
         canonical_module_dir_path = os.path.dirname(os.path.realpath(module_path))
 
@@ -45,9 +45,9 @@ class StripHintsLoader(SourceLoader):
         return source
 
 def install(loader_details):
-    # insert the path hook ahead of other path hooks
+    # Insert the path hook ahead of other path hooks.
     sys.path_hooks.insert(0, FileFinder.path_hook(loader_details))
-    # clear any loaders that might already be in use by the FileFinder
+    # Clear any loaders that might already be in use by the FileFinder.
     sys.path_importer_cache.clear()
     invalidate_caches()
 
@@ -63,7 +63,7 @@ def register_stripper_fun(calling_module_file, stripper_fun, py3_also=False):
 
     global registered
     if not registered:
-        loader_details = StripHintsLoader, [".py"]
+        loader_details = StripHintsSourceLoader, [".py"]
         install(loader_details)
         registered = True
 
