@@ -57,7 +57,7 @@ def register_stripper_fun(calling_module_file, stripper_fun, py3_also=False):
     import to strip type hints.  This is based on the `realpath` of the
     directory of the module."""
     if version != 3:
-        raise ImportError("Importing wrong `register_stripper_fun` for Python 3.")
+        raise ImportError("Importing wrong `register_stripper_fun` for Python 2.")
     if not py3_also:
         return
 

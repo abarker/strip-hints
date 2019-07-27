@@ -106,8 +106,8 @@ def register_stripper_fun(calling_module_file, stripper_fun, py3_also=False):
     declare that all later imports from that directory should be processed on
     import to strip type hints.  This is based on the `realpath` of the
     directory of the module."""
-    if version == 3 and not py3_also:
-        return
+    if version == 3:
+        raise ImportError("Wrong `register_stripper_fun` imported for Python 3")
 
     global strip_importer_instance
     if not strip_importer_instance:
