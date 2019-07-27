@@ -19,9 +19,6 @@ import os
 
 version = sys.version_info[0]
 
-if version == 3:
-    import importlib
-
 strip_importer_instance = None # Only install one, then modify its static attributes.
 
 class StripHintsImporter(object):
