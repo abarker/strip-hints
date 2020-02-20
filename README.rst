@@ -107,6 +107,10 @@ The option settings here are the default values::
                                       no_colon_move=False, only_assigns_and_defs=False,
                                       only_test_for_changes=False)
 
+To strip code that is originally in a string, rather than reading from a file,
+the function ``strip_string_to_string`` takes the same arguments as
+``strip_file_to_string`` except that the first argument is ``code_string``.
+
 If ``only_test_for_changes`` is true then a boolean is returned which is true iff
 some changes would be made.
 
