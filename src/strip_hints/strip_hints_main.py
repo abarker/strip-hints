@@ -106,12 +106,9 @@ with a name, e.g., not ones like `(x) : int`.
 from __future__ import print_function, division, absolute_import
 import sys
 import tokenize
-import io
-import os
-import collections
 import ast
 import keyword
-from .token_list import (Token, TokenList, print_list_of_token_lists, ignored_types_set,
+from .token_list import (TokenList, print_list_of_token_lists, ignored_types_set,
                          version, StripHintsException)
 if version == 2:
     from . import import_hooks
@@ -156,7 +153,6 @@ class HintStripper(object):
         # For some info, see these issues with backslash in untokenize and the two
         # distinct modes: https://bugs.python.org/issue12691
         moved_colon = False
-        success_fixing = False
         for t in token_list:
             if t.type_name == "NL":
                 if (not self.no_colon_move) and rpar_and_colon:
@@ -170,7 +166,6 @@ class HintStripper(object):
                     raise StripHintsException("Line break occurred inside a whited-out,"
                        " unnested part of type hint.\nThe error occurred on line {0}"
                        " of the file {1}:\n{2}".format(t.start[0], t.filename, t.line))
-                    raise StripHintsException(err_msg)
 
     def process_single_parameter(self, parameter, nesting_level, annassign=False):
         """Process a single parameter in a function definition.  Setting `annassign`
@@ -313,7 +308,7 @@ class HintStripper(object):
 
             # Process the remaining part of the hint.  Low-level C-style loop.
             i = 0
-            while (non_ignored_toks[i].type_name == "NAME"):
+            while non_ignored_toks[i].type_name == "NAME":
                 i += 1
                 if i >= len(non_ignored_toks):
                     break
@@ -335,8 +330,8 @@ class HintStripper(object):
                         i += 1
                         if i >= len(non_ignored_toks):
                             break
-                        if (non_ignored_toks[i].string == "]" and
-                                non_ignored_toks[i].nesting_level == 1):
+                        if (non_ignored_toks[i].string == "]"
+                                and non_ignored_toks[i].nesting_level == 1):
                             break
                     i += 1
                     if i >= len(non_ignored_toks):

@@ -11,7 +11,6 @@ from __future__ import print_function, division, absolute_import
 import sys
 import tokenize
 import io
-import collections
 import codecs
 import locale
 
@@ -124,7 +123,7 @@ class Token(object):
         as the original string.  If `empty` is true then an empty string is used."""
         if self.type in ignored_types_set:
             return
-        new_token = list(self.token_tuple)
+        #new_token = list(self.token_tuple)
         if empty:
             self.string = ""
         else:
@@ -345,7 +344,7 @@ class TokenList(object):
                 else: # Separator on the right piece.
                     result.append(TokenList(self.token_list[last_split:i]))
                     last_split = i
-                did_split = True
+                #did_split = True
         if no_empty:
             result = [r for r in result if r]
         if return_splits:
