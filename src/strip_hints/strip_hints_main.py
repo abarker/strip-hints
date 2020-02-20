@@ -274,9 +274,19 @@ class HintStripper(object):
                                       annassign=True)
 
     def strip_type_hints_from_file(self, filename):
-        """Main program to strip type hints."""
-        # Get the tokens and split the lines into logical lines, etc.
+        """Strip the type hints from a file named `filename`."""
         tokens = TokenList(filename=filename, compat_mode=False)
+        return self.strip_type_hints_from_TokenList(tokens)
+
+    def strip_type_hints_from_string(self, code_string):
+        """Strip the type hints from a string containing code."""
+        tokens = TokenList(code_string=code_string, compat_mode=False)
+        return self.strip_type_hints_from_TokenList(tokens)
+
+    def strip_type_hints_from_TokenList(self, tokens):
+        """The main program to strip type hints from the given `TokenList` instance.
+        Returns the stripped code as a string."""
+        # Get the tokens and split the lines into logical lines, etc.
         if DEBUG: print("Original tokens:\n", tokens, sep="")
         logical_lines = tokens.split(token_types=logical_lines_split_types,
                                      token_values=logical_lines_split_values,
@@ -355,10 +365,12 @@ def strip_file_to_string(filename, to_empty=False, no_ast=False, no_colon_move=F
 
     Returns a string containing the stripped code unless
     `only_test_for_changes` is true, in which case a boolean is returned."""
-    # TODO: The extra processing of arguments here could be moved to
+    # Todo: The extra processing of arguments here could be moved to
     # `HintStripper` and `stripper.strip_hints_from_file`, for consistency.
     # As it is the strip-on-import function cannot do an AST check (but one
     # will be done anyway in parsing the code).
+    #
+    # Todo: could take an encoding argument; default utf-8 is used.
 
     # Create the HintStripper and call its stripping method.
     stripper = HintStripper(to_empty, no_ast, no_colon_move, only_assigns_and_defs)
@@ -381,11 +393,39 @@ def strip_file_to_string(filename, to_empty=False, no_ast=False, no_colon_move=F
         original_tokens = TokenList()
         original_tokens.read_from_file(filename)
         original_tokens_untokenized = original_tokens.untokenize()
+        return not original_tokens_untokenized == processed_code
 
-        if original_tokens_untokenized == processed_code:
-            return False
+def strip_string_to_string(code_string, to_empty=False, no_ast=False, no_colon_move=False,
+                         only_assigns_and_defs=False, only_test_for_changes=False):
+    """Functional interface to strip hints from the string `code_string`.
+    The remaining arguments are the same as the command-line arguments, except
+    with underscores.
+
+    Returns a string containing the stripped code unless
+    `only_test_for_changes` is true, in which case a boolean is returned."""
+    # Todo: Code redundancy, duplication from strip_file_to_string, could be cleaned up.
+
+    # Create the HintStripper and call its stripping method.
+    stripper = HintStripper(to_empty, no_ast, no_colon_move, only_assigns_and_defs)
+    processed_code = stripper.strip_type_hints_from_string(code_string)
+
+    # Parse the code into an AST as an error check.
+    if not stripper.no_ast:
+        if version == 2:
+            ast.parse(processed_code.encode("utf-8"))
         else:
-            return True
+            ast.parse(processed_code)
+
+    # Return the result.
+    if not only_test_for_changes:
+        return processed_code
+    else:
+        # Need to tokenize and untokenize because tokenizer's round-trip guarantee does
+        # not guarantee spaces within lines (but usually works).
+        original_tokens = TokenList()
+        original_tokens.read_from_string(code_string)
+        original_tokens_untokenized = original_tokens.untokenize()
+        return not original_tokens_untokenized == processed_code
 
 def strip_on_import(calling_module_filename, to_empty=False, no_ast=False,
                     no_colon_move=False, only_assigns_and_defs=False, py3_also=False):

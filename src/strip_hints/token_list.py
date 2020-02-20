@@ -24,6 +24,7 @@ if version == 2:
     #http://blog.mathieu-leplatre.info/python-utf-8-print-fails-when-redirecting-stdout.html
     #https://wiki.python.org/moin/PrintFails
     sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout)
+    import StringIO
 else:
     call_tokenize = tokenize.tokenize
 
@@ -39,6 +40,15 @@ def get_textfile_reader(filename, encoding):
         return stream.readline
     else:
         byte_stream = open(filename, "rb")
+        return byte_stream.readline
+
+def get_string_reader(string, encoding):
+    """Open a string with a file-like `readline()` interface."""
+    if version == 2:
+        stream = StringIO.StringIO(string)
+        return stream.readline
+    else:
+        byte_stream = io.BytesIO(bytes(string, encoding=encoding))
         return byte_stream.readline
 
 def print_list_of_token_lists(lst, header=None):
@@ -156,6 +166,9 @@ class TokenList(object):
         The keyword `filename=filename.py` can be set to read from a file, in
         which case any iterables are ignored.
 
+        The keyword `code_string` can be set to read from a string, in
+        which case any iterables are ignored.
+
         The keyword `encoding` can be passed in to save as the unicode encoding.
         The default is UTF-8.
 
@@ -168,12 +181,16 @@ class TokenList(object):
             self.encoding = kwargs["encoding"]
         else:
             self.encoding = "utf-8"
+
         if "compat_mode" in kwargs and kwargs["compat_mode"]:
             self.compat_mode = True
         else:
             self.compat_mode = False
+
         if "filename" in kwargs:
             self.read_from_file(kwargs["filename"])
+        elif "code_string" in kwargs:
+            self.read_from_string(kwargs["code_string"])
         else:
             self.set_from_iterables(*iterables)
 
@@ -208,7 +225,24 @@ class TokenList(object):
         if compat_mode:
             self.compat_mode = compat_mode
         reader = get_textfile_reader(filename, encoding)
-        tok_generator = call_tokenize(reader)
+        return self.read_from_readline_interface(reader, filename, compat_mode=compat_mode)
+
+    def read_from_string(self, code_string, encoding="utf-8", compat_mode=False):
+        """Read from the string `code_string` and return a list of tuples containing
+        a token and its nesting level."""
+        # Nesting level is only ever set here, nowhere else as of now.
+        if compat_mode:
+            self.compat_mode = compat_mode
+        reader = get_string_reader(code_string, encoding)
+        return self.read_from_readline_interface(reader, compat_mode=compat_mode)
+
+    def read_from_readline_interface(self, readline, filename=None, compat_mode=False):
+        """Read from an object implementing the `readline` interface. Return a
+        list of tuples containing a token and its nesting level."""
+        # Todo: Compat mode arg handling could be cleaned up in this method and class.
+        if compat_mode:
+            self.compat_mode = compat_mode
+        tok_generator = call_tokenize(readline)
 
         self.token_list = []
         nesting_level = 0

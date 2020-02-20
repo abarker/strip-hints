@@ -1,6 +1,6 @@
 
 
-def simp(x, y):
+def simp(x: int, y: bool) -> bool:
     def q(x: int=4):
         x: int=4
 

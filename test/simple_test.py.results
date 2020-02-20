@@ -1,6 +1,6 @@
 
 
-def simp(x, y):
+def simp(x     , y      )        :
     def q(x     =4):
         x     =4
 
