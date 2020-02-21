@@ -1,6 +1,11 @@
 #!/bin/bash
+#
+# Just run the script with no arguments from the test directory.
 
-STRIP="python ../bin/strip_hints.py"
+# This picks up whatever Python is set in the virtualenv.  Explicitly change it
+# to test other versions.
+STRIP="python3.7 ../bin/strip_hints.py"
+
 testfiles="really_simple_test.py simple_test.py testfile_strip_hints.py testfile_strip_classes.py"
 
 echo
