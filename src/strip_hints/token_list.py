@@ -12,6 +12,7 @@ import sys
 import tokenize
 import io
 import codecs
+import contextlib
 import locale
 
 tok_name = tokenize.tok_name # A dict mapping token values to names.
@@ -31,24 +32,24 @@ else:
 # Low-level utility functions.
 #
 
-def get_textfile_reader(filename, encoding):
+def get_textfile_stream(filename, encoding):
     """Open a file in read only mode using the encoding `encoding`.  Return
     a text reader compatible with `tokenize.tokenize`."""
     if version == 2:
         stream = io.open(filename, "r", encoding=encoding)
-        return stream.readline
+        return stream
     else:
         byte_stream = open(filename, "rb")
-        return byte_stream.readline
+        return byte_stream
 
-def get_string_reader(string, encoding):
+def get_string_stream(string, encoding):
     """Open a string with a file-like `readline()` interface."""
     if version == 2:
         stream = StringIO.StringIO(string)
-        return stream.readline
+        return stream
     else:
         byte_stream = io.BytesIO(bytes(string, encoding=encoding))
-        return byte_stream.readline
+        return byte_stream
 
 def print_list_of_token_lists(lst, header=None):
     """Used for debugging output."""
@@ -223,8 +224,8 @@ class TokenList(object):
         self.encoding = encoding
         if compat_mode:
             self.compat_mode = compat_mode
-        reader = get_textfile_reader(filename, encoding)
-        return self.read_from_readline_interface(reader, filename, compat_mode=compat_mode)
+        with contextlib.closing(get_textfile_stream(filename, encoding)) as stream:
+            return self.read_from_readline_interface(stream.readline, filename, compat_mode=compat_mode)
 
     def read_from_string(self, code_string, encoding="utf-8", compat_mode=False):
         """Read from the string `code_string` and return a list of tuples containing
@@ -232,8 +233,8 @@ class TokenList(object):
         # Nesting level is only ever set here, nowhere else as of now.
         if compat_mode:
             self.compat_mode = compat_mode
-        reader = get_string_reader(code_string, encoding)
-        return self.read_from_readline_interface(reader, compat_mode=compat_mode)
+        with contextlib.closing(get_string_stream(code_string, encoding)) as stream:
+            return self.read_from_readline_interface(stream.readline, compat_mode=compat_mode)
 
     def read_from_readline_interface(self, readline, filename=None, compat_mode=False):
         """Read from an object implementing the `readline` interface. Return a
