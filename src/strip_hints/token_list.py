@@ -34,7 +34,7 @@ else:
 
 def get_textfile_stream(filename, encoding):
     """Open a file in read only mode using the encoding `encoding`.  Return
-    a text reader compatible with `tokenize.tokenize`."""
+    a text stream with a reader compatible with `tokenize.tokenize`."""
     if version == 2:
         stream = io.open(filename, "r", encoding=encoding)
         return stream
@@ -43,7 +43,7 @@ def get_textfile_stream(filename, encoding):
         return byte_stream
 
 def get_string_stream(string, encoding):
-    """Open a string with a file-like `readline()` interface."""
+    """Open and return a string stream with a file-like `readline()` interface."""
     if version == 2:
         stream = StringIO.StringIO(string)
         return stream
