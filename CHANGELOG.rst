@@ -3,14 +3,14 @@
 Changelog
 =========
 
-0.1.7 (2019-??-??)
-------------------
+0.1.8 (2019-2-21)
+-----------------
 
 Added a new Python interface function ``strip_string_to_string`` which works
 just the same as ``strip_file_to_string`` except it takes a code string
 argument instead of a file name.
 
-0.1.6 (2019-6-16)
+0.1.7 (2019-6-16)
 -----------------
 
 Added an `importlib` stripper for strip-on-import for Python 3.
