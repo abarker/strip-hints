@@ -152,10 +152,12 @@ class HintStripper(object):
 
     def check_whited_out_line_breaks(self, token_list, rpar_and_colon=None):
         """Check that a `TokenList` instance to be whited-out does not include a
-        newline (since it would no longer be nested and valid)."""
-        # TODO: Easy way to fix is to just move the assignment line, similar to moving colon.
-        # Just convert all NL tokens to empty strings and add that number of \n chars to the
-        # end token to preserve line numbers.
+        newline (since it would no longer be nested and valid).  This routine
+        also moves the colon if `rpar_and_colon` is passed a token list and
+        the `--no-colon-move` option is not selected."""
+        # Note this check is used 1) when the `--no-equal-move` option is selected
+        # to check annotated assignments and 2) to check and possibly fix function
+        # return annotations.
         #
         # Breaks could also be fixed by inserting a backslash line continuation,
         # but I haven't figured out how to insert a backslash.  It is complicated
