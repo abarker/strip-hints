@@ -1,0 +1,71 @@
+
+from typing import List, NamedTuple
+
+def foo(
+  param1     ,
+  param2      = "zzz",
+):                           
+                
+                
+  
+  pass
+
+# x1
+def foo(
+  param1     ,
+  param2      = "zzz",
+):                           
+                
+                
+  
+  # x2
+  pass
+# x3
+
+#egg: List[
+#
+#        int
+#
+#        ]
+
+# Just before.
+egg                            = 3
+
+
+
+
+# Just after.
+
+# before 2
+egg            = 3
+# after 2
+
+# before 3
+#egg: List[int]
+# after 3
+
+# before 4
+#egg: List[
+#
+#        int
+#
+#        ]
+# after 4
+
+x = 3
+#egg: List[int]
+x = 3
+
+egg
+
+def f():
+    #egg: List[int]
+
+    pass
+
+def f():
+    # f 1
+    #egg: List[int]
+    # f 2
+
+    pass
