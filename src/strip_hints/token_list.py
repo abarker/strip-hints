@@ -74,7 +74,8 @@ class Token(object):
 
     The tokens are mutable via changing the named attributes such as `type` and
     `string`.  Accessing the `token_tuple` property returns a tuple of the
-    current values."""
+    current values (the format Python's `untokenize` function expects)."""
+
     def __init__(self, token_iterable, nesting_level=None, filename=None,
                  compat_mode=False):
         """Pass in an iterable which produces the token elements.  The `nesting_level`
@@ -119,17 +120,23 @@ class Token(object):
             current_tuple = (self.type, self.string, self.start, self.end, self.line)
         return current_tuple
 
-    def to_whitespace(self, empty=False):
-        """Convert the string or value of the token to spaces, of the same length
-        as the original string.  If `empty` is true then an empty string is used."""
+    def to_whitespace(self, empty=False, strip_nl=False):
+        """Convert the string or value of the token to a string of spaces of
+        the same length as the original string.
+
+        If `empty` is true then an empty string is used for the replacement.
+
+        If `strip_nl` is true then NL tokens (non-logical line breaks) are also
+        removed (converted to empty strings)."""
+        if strip_nl and self.type == tokenize.NL:
+            self.string = ""
+            return
         if self.type in ignored_types_set:
             return
-        #new_token = list(self.token_tuple)
         if empty:
             self.string = ""
         else:
             self.string = " " * len(self.token_tuple[1])
-        self.string = " " * len(self.string)
 
     def __repr__(self):
         return self.simple_repr()
@@ -176,7 +183,10 @@ class TokenList(object):
         tokenizer's compatability mode (two-element token tuples) rather than
         the default full mode (five-element token tuples).
 
-        Nesting levels are currently only set when reading from a file."""
+        Nesting levels are currently only set when reading from a string or
+        file.  Nesting levels start at zero and increase on any character in
+        `nest_open` (class attribute above) and decrease just after any
+        character in `nest_close`."""
         if "encoding" in kwargs:
             self.encoding = kwargs["encoding"]
         else:
@@ -220,7 +230,7 @@ class TokenList(object):
     def read_from_file(self, filename, encoding="utf-8", compat_mode=False):
         """Read the file `filename` and return a list of tuples containing
         a token and its nesting level."""
-        # Nesting level is only ever set here, nowhere else as of now.
+        # Nesting level is only ever set here and `read_from_string`, nowhere else as of now.
         self.encoding = encoding
         if compat_mode:
             self.compat_mode = compat_mode
@@ -230,7 +240,7 @@ class TokenList(object):
     def read_from_string(self, code_string, encoding="utf-8", compat_mode=False):
         """Read from the string `code_string` and return a list of tuples containing
         a token and its nesting level."""
-        # Nesting level is only ever set here, nowhere else as of now.
+        # Nesting level is only ever set here and `read_from_file`, nowhere else as of now.
         if compat_mode:
             self.compat_mode = compat_mode
         with contextlib.closing(get_string_stream(code_string, encoding)) as stream:
@@ -293,15 +303,16 @@ class TokenList(object):
         """Split a list of tokens (with nesting info) into separate `TokenList`
         instances.  Returns a list of the instances.
 
-        Lists of properties of the tokens to split on are passed to the method.
-        The resulting splits will be on tokens which satisfy any of the
-        criteria.  If `disjunction` is false then the conjunction of the
-        separate lists is used instead (but disjunction is still used within any,
-        list since those properties are mutually exclusive).
+        Lists of properties (type names, types, or values) of the tokens to
+        split on are passed to the method.  The resulting splits will be on
+        tokens which satisfy any of the criteria.  If `disjunction` is false
+        then the conjunction of the separate lists is used instead (but
+        disjunction is still used within any list since those properties are
+        mutually exclusive).
 
-        Separators are part of the `TokenList` to the left unless
-        `isolated_separators` is true, in which case separators have their own
-        `TokenList` instances.  They can also be ignored.
+        Separators are part of the `TokenList` to the right unless
+        `sep_on_left` is true.  If `isolated_separators` is true separators are
+        placed in their own `TokenList` instances.  They can also be ignored.
 
         If `return_splits` is true then two values are returned: the list of
         token lists and a list of tokens where splits were made."""
@@ -345,7 +356,6 @@ class TokenList(object):
                 else: # Separator on the right piece.
                     result.append(TokenList(self.token_list[last_split:i]))
                     last_split = i
-                #did_split = True
         if no_empty:
             result = [r for r in result if r]
         if return_splits:

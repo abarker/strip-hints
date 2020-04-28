@@ -9,7 +9,7 @@ class Tst:
         self.xyz      = 100
         qwerty        = {}
         self.nested.x       = 3
-        #elf.nested.x : int
+        #self.nested.x : int
 
     @property
     def size():

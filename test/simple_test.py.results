@@ -4,7 +4,7 @@ def simp(x     , y      )        :
     def q(x     =4):
         x     =4
 
-#gg : int
+#egg : int
 
 def foo(bar                  , egg=lambda x,y: 4*(3+3),
         egg2     = lambda: (4),

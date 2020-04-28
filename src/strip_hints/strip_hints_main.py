@@ -100,14 +100,18 @@ with a name, e.g., not ones like `(x) : int`.
 
 """
 
-# TODO:
-# 0) Document new function interfaces and options in README.
+# TODO: Document no-equal-move and strip-nl options.
 
 from __future__ import print_function, division, absolute_import
 import sys
 import tokenize
 import ast
 import keyword
+
+if __name__ == "__main__":
+    print("Run the console script 'strip-hints' if installed with pip, otherwise"
+          "\nrun the Python script 'strip-hints.py' in the 'bin' directory.")
+
 from .token_list import (TokenList, print_list_of_token_lists, ignored_types_set,
                          version, StripHintsException)
 if version == 2:
@@ -117,8 +121,10 @@ else:
 
 # These are the default option values to the command-line interface only.
 default_to_empty = False   # Map hints to empty strings.  Easier to read; more changes.
+default_strip_nl = False   # Also strips NL tokens (nonlogical newlines) in type hints.
 default_no_ast = False # Whether to parse the processed code to AST.
 default_no_colon_move = False # Whether to move colon to fix linebreaks in return.
+default_no_equal_move = False # Whether to move = to fix deleted linebreaks in annotatated assigns.
 default_only_assigns_and_defs = False # Whether to keep fundef annotations, strip rest.
 default_only_test_for_changes = False # Print True and exit 0 if changes, otherwise False and 1.
 
@@ -133,17 +139,24 @@ if version == 3:
 
 class HintStripper(object):
     """Class holding the main stripping functions and the options as instance state."""
-    def __init__(self, to_empty, no_ast, no_colon_move, only_assigns_and_defs):
+    def __init__(self, to_empty, strip_nl, no_ast,  no_colon_move, no_equal_move,
+                 only_assigns_and_defs):
         """Initialize, passing in options for how to process hints (see the default
         values above for details)."""
         self.to_empty = to_empty
+        self.strip_nl = strip_nl
         self.no_ast = no_ast
         self.no_colon_move = no_colon_move
+        self.no_equal_move = no_equal_move
         self.only_assigns_and_defs = only_assigns_and_defs
 
     def check_whited_out_line_breaks(self, token_list, rpar_and_colon=None):
         """Check that a `TokenList` instance to be whited-out does not include a
         newline (since it would no longer be nested and valid)."""
+        # TODO: Easy way to fix is to just move the assignment line, similar to moving colon.
+        # Just convert all NL tokens to empty strings and add that number of \n chars to the
+        # end token to preserve line numbers.
+        #
         # Breaks could also be fixed by inserting a backslash line continuation,
         # but I haven't figured out how to insert a backslash.  It is complicated
         # in tokenizer.  Issues with backslash in untokenize, and two distinct
@@ -152,6 +165,8 @@ class HintStripper(object):
         # the "\" except implicitly in the start and end component numbers.
         # For some info, see these issues with backslash in untokenize and the two
         # distinct modes: https://bugs.python.org/issue12691
+        if self.strip_nl:
+            return # NL tokens will be set to empty strings, so no problem.
         moved_colon = False
         for t in token_list:
             if t.type_name == "NL":
@@ -171,41 +186,65 @@ class HintStripper(object):
         """Process a single parameter in a function definition.  Setting `annassign`
         makes slight changes to instead handle annotated assignments."""
 
-        # First split on colon or equal sign.
+        # First do exactly one split on colon or equal sign.
 
         split_on_colon_or_equal, splits = parameter.split(token_values=":=",
                                                           only_nestlevel=nesting_level,
                                                           sep_on_left=False, max_split=1,
                                                           return_splits=True)
-        if len(split_on_colon_or_equal) == 1: # Just a variable name.
+        if len(split_on_colon_or_equal) == 1: # Just a variable name, no type or annotation.
             if annassign:
+                # TODO: This code condition can never be reached.  Make sure and then delete.
                 self.check_whited_out_line_breaks(split_on_colon_or_equal[0])
                 for t in split_on_colon_or_equal[0]:
-                    t.to_whitespace(empty=self.to_empty)
+                    t.to_whitespace(empty=self.to_empty, strip_nl=self.strip_nl)
             return
+
         assert len(split_on_colon_or_equal) == 2
         assert len(splits) == 1
+
         right_part = split_on_colon_or_equal[1]
 
         if splits[0].string == "=":
-            return # Parameter is just a var with a regular default value.
+            return # Parameter is just a variable with a regular default value.
 
-        # Now split the right part on equal.
+        # At this point we found an annotation.
+        # Now do exactly one split the right part on equal.
 
         split_on_equal = right_part.split(token_values="=",
                                           only_nestlevel=nesting_level,
                                           max_split=1, sep_on_left=False)
         if len(split_on_equal) == 1: # Got a type def, no assignment or default.
             if annassign: # Make into a comment (if not a fun parameter).
-                for t in parameter.iter_with_skips(skip_types=ignored_types_set):
-                    t.string = "#" + t.string[1:]
-                    return
+                skip_set = ignored_types_set.copy()
+                skip_set.remove(tokenize.NL)
+                varname_commented = False
+                for t in parameter.iter_with_skips(skip_types=skip_set):
+                    if not varname_commented:
+                        t.string = "#" + t.string # was t.string[1:]
+                        varname_commented = True
+                        continue
+                    if t.type == tokenize.NL:
+                        t.string = "\n#"
+                return
 
         type_def = split_on_equal[0]
-        if annassign:
+
+        if annassign and self.no_equal_move:
             self.check_whited_out_line_breaks(type_def)
+
+        nl_count = 0
         for t in type_def:
-            t.to_whitespace(empty=self.to_empty)
+            if t.type == tokenize.NL:
+                nl_count += 1
+            strip_nl = self.strip_nl
+            if annassign and not self.no_equal_move:
+                strip_nl = True
+            t.to_whitespace(empty=self.to_empty, strip_nl=strip_nl)
+
+        has_assignment = len(split_on_equal) > 1
+        if annassign and not self.no_equal_move and has_assignment:
+            split_on_equal[1][-1].string += "\n" * nl_count
 
     def process_parameters(self, parameters, nesting_level):
         """Process the parameters to a function."""
@@ -222,11 +261,11 @@ class HintStripper(object):
             elif (t.string == "," and t.nesting_level == nesting_level
                                   and not inside_lambda):
                 self.process_single_parameter(parameters[prev_comma_plus_one:count],
-                                         nesting_level=nesting_level)
+                                              nesting_level=nesting_level)
                 prev_comma_plus_one = count + 1
             elif count == len(parameters) - 1:
                 self.process_single_parameter(parameters[prev_comma_plus_one:count+1],
-                                         nesting_level=nesting_level)
+                                              nesting_level=nesting_level)
                 prev_comma_plus_one = count + 1
 
 
@@ -243,7 +282,7 @@ class HintStripper(object):
         self.check_whited_out_line_breaks(return_type_spec,
                                      rpar_and_colon=(rpar_token, colon_token))
         for t in return_type_spec:
-            t.to_whitespace(empty=self.to_empty)
+            t.to_whitespace(empty=self.to_empty, strip_nl=self.strip_nl)
 
     def process_funcdef_without_suite(self, funcdef_logical_line):
         """Process the top line of a `funcdef` function definition."""
@@ -352,7 +391,8 @@ class HintStripper(object):
 # The main functional interfaces.
 #
 
-def strip_file_to_string(filename, to_empty=False, no_ast=False, no_colon_move=False,
+def strip_file_to_string(filename, to_empty=False, strip_nl=False, no_ast=False,
+                         no_colon_move=False, no_equal_move=False,
                          only_assigns_and_defs=False, only_test_for_changes=False):
     """Functional interface to strip hints from file `filename`.
     The remaining arguments are the same as the command-line arguments, except
@@ -368,7 +408,8 @@ def strip_file_to_string(filename, to_empty=False, no_ast=False, no_colon_move=F
     # Todo: could take an encoding argument; default utf-8 is used.
 
     # Create the HintStripper and call its stripping method.
-    stripper = HintStripper(to_empty, no_ast, no_colon_move, only_assigns_and_defs)
+    stripper = HintStripper(to_empty, strip_nl, no_ast, no_colon_move, no_equal_move,
+                            only_assigns_and_defs)
     processed_code = stripper.strip_type_hints_from_file(filename)
 
     # Parse the code into an AST as an error check.
@@ -390,8 +431,9 @@ def strip_file_to_string(filename, to_empty=False, no_ast=False, no_colon_move=F
         original_tokens_untokenized = original_tokens.untokenize()
         return not original_tokens_untokenized == processed_code
 
-def strip_string_to_string(code_string, to_empty=False, no_ast=False, no_colon_move=False,
-                         only_assigns_and_defs=False, only_test_for_changes=False):
+def strip_string_to_string(code_string, to_empty=False, strip_nl=False, no_ast=False,
+                           no_colon_move=False, no_equal_move=False,
+                           only_assigns_and_defs=False, only_test_for_changes=False):
     """Functional interface to strip hints from the string `code_string`.
     The remaining arguments are the same as the command-line arguments, except
     with underscores.
@@ -401,7 +443,8 @@ def strip_string_to_string(code_string, to_empty=False, no_ast=False, no_colon_m
     # Todo: Code redundancy, duplication from strip_file_to_string, could be cleaned up.
 
     # Create the HintStripper and call its stripping method.
-    stripper = HintStripper(to_empty, no_ast, no_colon_move, only_assigns_and_defs)
+    stripper = HintStripper(to_empty, strip_nl, no_ast,  no_colon_move, no_equal_move,
+                            only_assigns_and_defs)
     processed_code = stripper.strip_type_hints_from_string(code_string)
 
     # Parse the code into an AST as an error check.
@@ -422,8 +465,9 @@ def strip_string_to_string(code_string, to_empty=False, no_ast=False, no_colon_m
         original_tokens_untokenized = original_tokens.untokenize()
         return not original_tokens_untokenized == processed_code
 
-def strip_on_import(calling_module_filename, to_empty=False, no_ast=False,
-                    no_colon_move=False, only_assigns_and_defs=False, py3_also=False):
+def strip_on_import(calling_module_filename, to_empty=False, strip_nl=False, no_ast=False,
+                    no_colon_move=False, no_equal_move=False, only_assigns_and_defs=False,
+                    py3_also=False):
     """The function can usually just be called with `__file__` for the
     `module_filename` argument.  It runs `strip_hints` with the specified
     options on all files that are imported.
@@ -431,7 +475,8 @@ def strip_on_import(calling_module_filename, to_empty=False, no_ast=False,
     Does nothing when run under Python 3 unless `py3_also` is set true."""
     # Could also have an option to load a '.py.stripped' file instead of the
     # actual file, to reduce overhead for actual version not in development.
-    stripper = HintStripper(to_empty, no_ast, no_colon_move, only_assigns_and_defs)
+    stripper = HintStripper(to_empty, strip_nl, no_ast,  no_colon_move, no_equal_move,
+                            only_assigns_and_defs)
     import_hooks.register_stripper_fun(calling_module_filename,
                                        stripper.strip_type_hints_from_file,
                                        py3_also=py3_also)
@@ -443,22 +488,30 @@ def strip_on_import(calling_module_filename, to_empty=False, no_ast=False,
 def process_command_line():
     """Process the file on the command line when run as a script or entry point."""
 
-    # Process the command-line arguments.
+    # Process the command-line arguments (should use argparse instead).
     to_empty = default_to_empty
+    strip_nl = default_strip_nl
     no_ast = default_no_ast
     no_colon_move = default_no_colon_move
+    no_equal_move = default_no_equal_move
     only_assigns_and_defs = default_only_assigns_and_defs
     only_test_for_changes = default_only_test_for_changes
 
     if "--to-empty" in sys.argv:
         to_empty = True
         sys.argv.remove("--to-empty")
+    if "--strip-nl" in sys.argv:
+        strip_nl = True
+        sys.argv.remove("--strip-nl")
     if "--no-ast" in sys.argv:
         no_ast = True
         sys.argv.remove("--no-ast")
     if "--no-colon-move" in sys.argv:
         no_colon_move = True
         sys.argv.remove("--no-colon-move")
+    if "--no-equal-move" in sys.argv:
+        no_equal_move = True
+        sys.argv.remove("--no-equal-move")
     if "--only-assigns-and-defs" in sys.argv:
         only_assigns_and_defs = True
         sys.argv.remove("--only-assigns-and-defs")
@@ -471,8 +524,9 @@ def process_command_line():
         sys.exit(1)
     code_file = sys.argv[1]
 
-    processed_code = strip_file_to_string(code_file, to_empty, no_ast, no_colon_move,
-                                          only_assigns_and_defs, only_test_for_changes)
+    processed_code = strip_file_to_string(code_file, to_empty, strip_nl, no_ast,
+                          no_colon_move, no_equal_move, only_assigns_and_defs,
+                          only_test_for_changes)
 
     if not only_test_for_changes:
         print(processed_code, end="")
@@ -485,8 +539,4 @@ def process_command_line():
             exit_code = 1
         sys.exit(exit_code)
 
-if __name__ == "__main__":
-
-    print("Run the console script 'strip-hints' if installed with pip, otherwise"
-          "\nrun the Python script 'strip-hints.py' in the 'bin' directory.")
 
