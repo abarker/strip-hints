@@ -218,14 +218,17 @@ class HintStripper(object):
             if annassign: # Make into a comment (if not a fun parameter).
                 skip_set = ignored_types_set.copy()
                 skip_set.remove(tokenize.NL)
-                varname_commented = False
-                for t in parameter.iter_with_skips(skip_types=skip_set):
-                    if not varname_commented:
-                        t.string = "#" + t.string # was t.string[1:]
-                        varname_commented = True
-                        continue
+                annassign_token_list = list(parameter.iter_with_skips(skip_types=skip_set))
+
+                first_non_nl_token = False
+                for t in annassign_token_list: # Make each line start with '#' char.
                     if t.type == tokenize.NL:
+                        if not first_non_nl_token:
+                            continue # Preceding comments are in token list; don't double the '#'.
                         t.string = "\n#"
+                    if not first_non_nl_token:
+                        t.string = "#" + t.string # was t.string[1:]
+                        first_non_nl_token = True
                 return
 
         type_def = split_on_equal[0]
