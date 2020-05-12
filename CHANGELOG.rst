@@ -3,6 +3,13 @@
 Changelog
 =========
 
+0.1.9 (2020-05-06)
+------------------
+
+Added the options ``--strip-nl`` and ``--no-equal-move``.  Fixing annotated
+assignments with newlines in type hints by moving the line with ``=`` was
+added.
+
 0.1.8 (2019-2-21)
 -----------------
 

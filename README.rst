@@ -19,8 +19,8 @@ Python 2.
 This project also contains a general-purpose class named ``TokenList`` which
 allows lists of Python tokens to be operated on using an interface similar to
 that of Python strings.  In particular, a ``split`` method is used for much of
-the processing in stripping hints.  This module could be useful for people
-doing other things with Python at the token level.
+the processing in stripping hints.  This module could be useful for doing other
+things with Python at the token level.
 
 Installing the code
 -------------------
@@ -56,7 +56,8 @@ The command-line options are as follows:
 
 ``--no-colon-move``
    Do not move colons to fix line breaks that occur in the hints for the
-   function return type.  Default is false.
+   function return type.  Default is false.  See the Limitations section below
+   for more information.
 
 ``--only-assigns-and-defs``
    Only strip annotated assignments and standalone type definitions, keeping
@@ -67,6 +68,22 @@ The command-line options are as follows:
    Only test if any changes would be made.  If any stripping would be done then
    it prints ``True`` and exits with code 0.  Otherwise it prints ``False`` and
    exits with code 1.
+
+``--strip-nl``
+   Also strip non-logical newline tokens inside type hints.  These occur, for
+   example, when a type-hint function like ``List`` in a function parameter
+   list has line breaks inside its own arguments list.  The default is to keep
+   the newline tokens in order to preserve line numbers between the stripped
+   and non-stripped files.  Selecting this option no longer guarantees a direct
+   correspondence.
+
+``--no-equal-move``
+   Do not move the assignment with ``=`` when needed to fix annotated
+   assignments that include newlines in the type hints.  When they are moved
+   the total number of lines is kept the same in order to preserve line number
+   correspondence between the stripped and non-stripped files.  If this option
+   is selected and such a situation occurs an exception is raised.  See the
+   Limitations section below for more information.
 
 If you are using the development repo you can just run the file
 ``strip_hints.py`` in the ``bin`` directory of the repo::
@@ -86,7 +103,9 @@ imports that are in the same directory as the calling module.  For a package
 the function call can be placed in ``__init__.py``, for example.
 
 The function can be called as follows, with options set as desired (these
-are the default settings)::
+are the default settings):
+
+.. code-block:: python
 
    from strip_hints import strip_on_import
    strip_on_import(__file__, to_empty=False, no_ast=False, no_colon_move=False,
@@ -100,7 +119,9 @@ Calling from a Python program
 
 To strip the comments from a source file from within a Python program,
 returning a string containing the code, the functional interface is as follows.
-The option settings here are the default values::
+The option settings here are the default values:
+
+.. code-block:: python
 
    from strip_hints import strip_file_to_string
    code_string = strip_file_to_string(filename, to_empty=False, no_ast=False,
@@ -117,15 +138,37 @@ some changes would be made.
 Limitations
 -----------
 
-The program currently does not handle line breaks in annotated assignments when
-the code that is removed (the type specification) contains a line break that is
-inside parens, brackets, or braces which get removed.  The program detects the
-situation and raises an exception.  As a workaround if necessary, using an
-explicit backslash line continuation seems to work.
+Ordinarily the program simply converts type hints to whitespace and the
+resulting code is still syntactically correct.  There are a couple of
+situation, though, where further transformations are required to preserve
+syntactical correctness.
 
-The same situation in the return type specification is handled by moving the
-colon token up to the line with the closing paren.  The situation does not
-occur inside parameter lists because they are always nested inside parentheses.
+One example is where a line break occurs in the argument list of a type
+hint in an annotated assignment:
+
+.. code-block:: python
+ 
+   x: List[int,
+           int] = [1,2]
+
+The program currently handles this by moving the line with ``=`` (and the
+following lines) to the end of the line with ``x``.  Empty lines are added to
+the end to keep to total number of lines the same.  The ``--no-equal-move``
+argument turns this off, in which case situations like those above raise
+exceptions.  (As a workaround if necessary with ``--no-equal-move``, using an
+explicit backslash line continuation seems to work.)
+
+A similar situation can occur in return type specifications:
+
+.. code-block:: python
+
+   def f() -> List[int,
+                   int]:
+       pass
+
+This is handled by moving the colon up to the line with the closing paren.  The
+situation does not occur inside parameter lists because they are always nested
+inside parentheses.
 
 The program currently only handles simple annotated expressions (e.g.,
 it handles ``my_class.x: int`` and ``my_list[2]: int`` but not ``(x): int``).
