@@ -142,10 +142,10 @@ Limitations
 
 Ordinarily the program simply converts type hints to whitespace and the
 resulting code is still syntactically correct.  There are a couple of
-situation, though, where further transformations are required to preserve
+situations, though, where further transformations are required to preserve
 syntactical correctness.
 
-One example is where a line break occurs in the argument list of a type
+One example is when a line break occurs in the argument list of a type
 hint in an annotated assignment:
 
 .. code-block:: python
@@ -169,8 +169,8 @@ A similar situation can occur in return type specifications:
        pass
 
 This is handled by moving the colon up to the line with the closing paren.  The
-situation does not occur inside parameter lists because they are always nested
-inside parentheses.
+situation does not occur inside function parameter lists because they are
+always nested inside parentheses.
 
 The program currently only handles simple annotated expressions (e.g.,
 it handles ``my_class.x: int`` and ``my_list[2]: int`` but not ``(x): int``).
