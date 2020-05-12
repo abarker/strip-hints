@@ -50,6 +50,14 @@ The command-line options are as follows:
    Map removed code to empty strings rather than spaces.  This is easier to read,
    but does not preserve columns.  Default is false.
 
+``--strip-nl``
+   Also strip non-logical newline tokens inside type hints.  These occur, for
+   example, when a type-hint function like ``List`` in a function parameter
+   list has line breaks inside its own arguments list.  The default is to keep
+   the newline tokens in order to preserve line numbers between the stripped
+   and non-stripped files.  Selecting this option no longer guarantees a direct
+   correspondence.
+
 ``--no-ast``
    Do not parse the resulting code with the Python ``ast`` module to check it.
    Default is false.
@@ -58,6 +66,14 @@ The command-line options are as follows:
    Do not move colons to fix line breaks that occur in the hints for the
    function return type.  Default is false.  See the Limitations section below
    for more information.
+
+``--no-equal-move``
+   Do not move the assignment with ``=`` when needed to fix annotated
+   assignments that include newlines in the type hints.  When they are moved
+   the total number of lines is kept the same in order to preserve line number
+   correspondence between the stripped and non-stripped files.  If this option
+   is selected and such a situation occurs an exception is raised.  See the
+   Limitations section below for more information.
 
 ``--only-assigns-and-defs``
    Only strip annotated assignments and standalone type definitions, keeping
@@ -68,22 +84,6 @@ The command-line options are as follows:
    Only test if any changes would be made.  If any stripping would be done then
    it prints ``True`` and exits with code 0.  Otherwise it prints ``False`` and
    exits with code 1.
-
-``--strip-nl``
-   Also strip non-logical newline tokens inside type hints.  These occur, for
-   example, when a type-hint function like ``List`` in a function parameter
-   list has line breaks inside its own arguments list.  The default is to keep
-   the newline tokens in order to preserve line numbers between the stripped
-   and non-stripped files.  Selecting this option no longer guarantees a direct
-   correspondence.
-
-``--no-equal-move``
-   Do not move the assignment with ``=`` when needed to fix annotated
-   assignments that include newlines in the type hints.  When they are moved
-   the total number of lines is kept the same in order to preserve line number
-   correspondence between the stripped and non-stripped files.  If this option
-   is selected and such a situation occurs an exception is raised.  See the
-   Limitations section below for more information.
 
 If you are using the development repo you can just run the file
 ``strip_hints.py`` in the ``bin`` directory of the repo::
@@ -119,13 +119,15 @@ Calling from a Python program
 
 To strip the comments from a source file from within a Python program,
 returning a string containing the code, the functional interface is as follows.
-The option settings here are the default values:
+The option settings here are all the default values:
 
 .. code-block:: python
 
    from strip_hints import strip_file_to_string
-   code_string = strip_file_to_string(filename, to_empty=False, no_ast=False,
-                                      no_colon_move=False, only_assigns_and_defs=False,
+   code_string = strip_file_to_string(filename, to_empty=False, strip_nl=False,
+                                      no_ast=False, no_colon_move=False,
+                                      no_equal_move=False,
+                                      only_assigns_and_defs=False,
                                       only_test_for_changes=False)
 
 To strip code that is originally in a string, rather than reading from a file,
