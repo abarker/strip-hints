@@ -107,6 +107,7 @@ import sys
 import tokenize
 import ast
 import keyword
+import argparse
 
 if __name__ == "__main__":
     print("Run the console script 'strip-hints' if installed with pip, otherwise"
@@ -490,10 +491,44 @@ def strip_on_import(calling_module_filename, to_empty=False, strip_nl=False, no_
 # Run as a script or entry point.
 #
 
+def parse_command_line():
+    """Create and return the argparse object to read the command line."""
+
+    parser = argparse.ArgumentParser(description="Strip the hints from a Python module.")
+
+    parser.add_argument("code_file", type=str, nargs=1, metavar="PYTHONFILE",
+                        default=None, help="The Python file to strip hints out of.")
+    parser.add_argument("--outfile", "-o", type=str, nargs=1, metavar="OUTPUTFILE",
+                        default=None, help="The file to write the stripped code to.  If this"
+                        "argument is omitted the program will write to stdout.")
+    parser.add_argument("--to-empty", action="store_true", default=False,
+                        help="Do not leave whitespace where the hints were.  The character"
+                        " positions within lines are not preserved with this option.")
+    parser.add_argument("--strip-nl", action="store_true", default=False,
+                        help="TODO!")
+    parser.add_argument("--no-ast", action="store_true", default=False,
+                        help="TODO!")
+    parser.add_argument("--no-colon-move", action="store_true", default=False,
+                        help="TODO!")
+    parser.add_argument("--no-equal-move", action="store_true", default=False,
+                        help="TODO!")
+    parser.add_argument("--only-assigns-and-defs", action="store_true", default=False,
+                        help="TODO!")
+    parser.add_argument("--only-test-for-changes", action="store_true", default=False,
+                        help="TODO!")
+
+    cmdline_args = parser.parse_args()
+    return cmdline_args
+
 def process_command_line():
     """Process the file on the command line when run as a script or entry point."""
 
-    # Process the command-line arguments (should use argparse instead).
+    # TODO: clean up the default-setting code below.
+    # TODO: Fill in todo docs in argparse.
+    # TODO: Implement the file-write option (later add a --inplace).
+
+    args = parse_command_line()
+
     to_empty = default_to_empty
     strip_nl = default_strip_nl
     no_ast = default_no_ast
@@ -502,32 +537,22 @@ def process_command_line():
     only_assigns_and_defs = default_only_assigns_and_defs
     only_test_for_changes = default_only_test_for_changes
 
-    if "--to-empty" in sys.argv:
+    if args.to_empty:
         to_empty = True
-        sys.argv.remove("--to-empty")
-    if "--strip-nl" in sys.argv:
+    if args.strip_nl:
         strip_nl = True
-        sys.argv.remove("--strip-nl")
-    if "--no-ast" in sys.argv:
+    if args.no_ast:
         no_ast = True
-        sys.argv.remove("--no-ast")
-    if "--no-colon-move" in sys.argv:
+    if args.no_colon_move:
         no_colon_move = True
-        sys.argv.remove("--no-colon-move")
-    if "--no-equal-move" in sys.argv:
+    if args.no_equal_move:
         no_equal_move = True
-        sys.argv.remove("--no-equal-move")
-    if "--only-assigns-and-defs" in sys.argv:
+    if args.only_assigns_and_defs:
         only_assigns_and_defs = True
-        sys.argv.remove("--only-assigns-and-defs")
-    if "--only-test-for-changes" in sys.argv:
+    if args.only_test_for_changes:
         only_test_for_changes = True
-        sys.argv.remove("--only-test-for-changes")
 
-    if len(sys.argv) < 2:
-        print("Pass in Python code file on the command line.", file=sys.stderr)
-        sys.exit(1)
-    code_file = sys.argv[1]
+    code_file = args.code_file[0]
 
     processed_code = strip_file_to_string(code_file, to_empty, strip_nl, no_ast,
                           no_colon_move, no_equal_move, only_assigns_and_defs,
