@@ -46,6 +46,15 @@ against whatever version of Python the script is run with.
 
 The command-line options are as follows:
 
+``--outfile`` (``-o``)
+   Write the output to a file with the pathname passed in.  Files will be
+   silently overwritten if they already exist.
+   If this argument is omitted the output is written to stdout.
+   
+``--inplace``
+   Modify the input code file inplace; code will be replaced with the stripped
+   code.  This is the same as passing in the code file's name as the output file.
+
 ``--to-empty``
    Map removed code to empty strings rather than spaces.  This is easier to read,
    but does not preserve columns.  Default is false.

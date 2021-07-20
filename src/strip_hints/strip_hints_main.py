@@ -487,10 +487,6 @@ def strip_on_import(calling_module_filename, to_empty=False, strip_nl=False, no_
                                        stripper.strip_type_hints_from_file,
                                        py3_also=py3_also)
 
-#
-# Run as a script or entry point.
-#
-
 def parse_command_line():
     """Create and return the argparse object to read the command line."""
 
@@ -499,13 +495,20 @@ def parse_command_line():
     parser.add_argument("code_file", type=str, nargs=1, metavar="PYTHONFILE",
                         default=None, help="The Python file to strip hints out of.")
     parser.add_argument("--outfile", "-o", type=str, nargs=1, metavar="OUTPUTFILE",
-                        default=None, help="The file to write the stripped code to.  If this"
-                        "argument is omitted the program will write to stdout.")
-    parser.add_argument("--to-empty", action="store_true", default=False,
+                        default=None,
+                        help="""Write the output to a file with the pathname passed in.
+                        Files will be silently overwritten if they already
+                        exist.  If this argument is omitted the output is
+                        written to stdout.""")
+    parser.add_argument("--inplace", action="store_true", default=False,
+                        help="""Modify the input code file inplace; code will be
+                        replaced with the stripped code.  This is the same as
+                        passing in the code file's name as the output file.""")
+    parser.add_argument("--to-empty", action="store_true", default=default_to_empty,
                         help="""Map removed code to empty strings rather than spaces.
                         This is easier to read, but does not preserve columns.
                         Default is false.""")
-    parser.add_argument("--strip-nl", action="store_true", default=False,
+    parser.add_argument("--strip-nl", action="store_true", default=default_strip_nl,
                         help="""Also strip non-logical newline tokens inside type
                         hints.  These occur, for example, when a type-hint
                         function like `List` in a function parameter list has
@@ -514,13 +517,13 @@ def parse_command_line():
                         numbers between the stripped and non-stripped files.
                         Selecting this option no longer guarantees a direct
                         correspondence.""")
-    parser.add_argument("--no-ast", action="store_true", default=False,
+    parser.add_argument("--no-ast", action="store_true", default=default_no_ast,
                         help="""Do not parse the resulting code with the Python `ast`
                         module to check it.  Default is false.""")
-    parser.add_argument("--no-colon-move", action="store_true", default=False,
+    parser.add_argument("--no-colon-move", action="store_true", default=default_no_colon_move,
                         help="""Do not move colons to fix line breaks that occur in the
                         hints for the function return type.  Default is false.""")
-    parser.add_argument("--no-equal-move", action="store_true", default=False,
+    parser.add_argument("--no-equal-move", action="store_true", default=default_no_equal_move,
                         help="""Do not move the assignment with `=` when needed to
                         fix annotated assignments that include newlines in the
                         type hints.  When they are moved the total number of
@@ -528,12 +531,14 @@ def parse_command_line():
                         correspondence between the stripped and non-stripped
                         files.  If this option is selected and such a situation
                         occurs an exception is raised.""")
-    parser.add_argument("--only-assigns-and-defs", action="store_true", default=False,
+    parser.add_argument("--only-assigns-and-defs", action="store_true",
+                        default=default_only_assigns_and_defs,
                         help="""Only strip annotated assignments and standalone type
                         definitions, keeping function signature annotations.
                         Python 3.5 and earlier do not implement these; they
                         first appeared in Python 3.6.  The default is false.""")
-    parser.add_argument("--only-test-for-changes", action="store_true", default=False, help="""
+    parser.add_argument("--only-test-for-changes", action="store_true",
+                        default=default_only_test_for_changes, help="""
                         Only test if any changes would be made.  If any
                         stripping would be done then it prints `True` and
                         exits with code 0.  Otherwise it prints `False` and
@@ -542,45 +547,28 @@ def parse_command_line():
     cmdline_args = parser.parse_args()
     return cmdline_args
 
+#
+# Run as a script or entry point.
+#
+
 def process_command_line():
     """Process the file on the command line when run as a script or entry point."""
 
-    # TODO: clean up the default-setting code below.
-    # TODO: Implement the file-write option (later add a --inplace).
-
     args = parse_command_line()
-
-    to_empty = default_to_empty
-    strip_nl = default_strip_nl
-    no_ast = default_no_ast
-    no_colon_move = default_no_colon_move
-    no_equal_move = default_no_equal_move
-    only_assigns_and_defs = default_only_assigns_and_defs
-    only_test_for_changes = default_only_test_for_changes
-
-    if args.to_empty:
-        to_empty = True
-    if args.strip_nl:
-        strip_nl = True
-    if args.no_ast:
-        no_ast = True
-    if args.no_colon_move:
-        no_colon_move = True
-    if args.no_equal_move:
-        no_equal_move = True
-    if args.only_assigns_and_defs:
-        only_assigns_and_defs = True
-    if args.only_test_for_changes:
-        only_test_for_changes = True
-
     code_file = args.code_file[0]
+    processed_code = strip_file_to_string(code_file, args.to_empty, args.strip_nl,
+                          args.no_ast, args.no_colon_move, args.no_equal_move,
+                          args.only_assigns_and_defs, args.only_test_for_changes)
 
-    processed_code = strip_file_to_string(code_file, to_empty, strip_nl, no_ast,
-                          no_colon_move, no_equal_move, only_assigns_and_defs,
-                          only_test_for_changes)
+    if args.inplace:
+        args.outfile = [code_file]
 
-    if not only_test_for_changes:
-        print(processed_code, end="")
+    if not args.only_test_for_changes:
+        if not args.outfile:
+            print(processed_code, end="")
+        else:
+            with open(args.outfile[0], "w") as f:
+                f.write(str(processed_code))
     else:
         if processed_code: # The variable processed_code will be boolean in this case.
             print("True")
@@ -589,5 +577,4 @@ def process_command_line():
             print("False")
             exit_code = 1
         sys.exit(exit_code)
-
 
