@@ -100,8 +100,6 @@ with a name, e.g., not ones like `(x) : int`.
 
 """
 
-# TODO: Document no-equal-move and strip-nl options.
-
 from __future__ import print_function, division, absolute_import
 import sys
 import tokenize
