@@ -154,9 +154,10 @@ class HintStripper(object):
         newline (since it would no longer be nested and valid).  This routine
         also moves the colon if `rpar_and_colon` is passed a token list and
         the `--no-colon-move` option is not selected."""
-        # Note this check is used 1) when the `--no-equal-move` option is selected
-        # to check annotated assignments and 2) to check and possibly fix function
-        # return annotations.
+        # Note this check is used
+        #    1) when the `--no-equal-move` option is selected
+        #       to check annotated assignments
+        #    2) to check and possibly fix function return annotations.
         #
         # Breaks could also be fixed by inserting a backslash line continuation,
         # but I haven't figured out how to insert a backslash.  It is complicated
