@@ -11,10 +11,10 @@ processed code file also correspond to those for the original code file.  In
 most cases, with the default options, both the line and column numbers are
 preserved.
 
-The stripping operation can be used as a preprocessor to allow the new type
-hint syntax to be used in Python 2.  The main intended application is for code
-which is being developed in Python 3 but which needs backward compatibility to
-Python 2.
+This program was originally written to strip hints from Python 2 code to allow
+for developing such code on Python 3 but running it with Python 2.  Since
+Python 2 is no longer maintained the program is no longer tested when run with
+Python 2 (but it probably still works).
 
 This project also contains a general-purpose class named ``TokenList`` which
 allows lists of Python tokens to be operated on using an interface similar to
@@ -71,19 +71,6 @@ The command-line options are as follows:
    Do not parse the resulting code with the Python ``ast`` module to check it.
    Default is false.
 
-``--no-colon-move``
-   Do not move colons to fix line breaks that occur in the hints for the
-   function return type.  Default is false.  See the Limitations section below
-   for more information.
-
-``--no-equal-move``
-   Do not move the assignment with ``=`` when needed to fix annotated
-   assignments that include newlines in the type hints.  When they are moved
-   the total number of lines is kept the same in order to preserve line number
-   correspondence between the stripped and non-stripped files.  If this option
-   is selected and such a situation occurs an exception is raised.  See the
-   Limitations section below for more information.
-
 ``--only-assigns-and-defs``
    Only strip annotated assignments and standalone type definitions, keeping
    function signature annotations.  Python 3.5 and earlier do not implement
@@ -93,6 +80,19 @@ The command-line options are as follows:
    Only test if any changes would be made.  If any stripping would be done then
    it prints ``True`` and exits with code 0.  Otherwise it prints ``False`` and
    exits with code 1.
+
+``--no-colon-move``
+   Do not move colons to fix line breaks that occur in the hints for the
+   function return type.  Default is false.  See the Limitations section below
+   for more information.  Not recommended.
+
+``--no-equal-move``
+   Do not move the assignment with ``=`` when needed to fix annotated
+   assignments that include newlines in the type hints.  When they are moved
+   the total number of lines is kept the same in order to preserve line number
+   correspondence between the stripped and non-stripped files.  If this option
+   is selected and such a situation occurs an exception is raised.  See the
+   Limitations section below for more information.  Not recommended.
 
 If you are using the development repo you can just run the file
 ``strip_hints.py`` in the ``bin`` directory of the repo::
@@ -162,12 +162,13 @@ hint in an annotated assignment:
    x: List[int,
            int] = [1,2]
 
-The program currently handles this by moving the line with ``=`` (and the
-following lines) to the end of the line with ``x``.  Empty lines are added to
-the end to keep to total number of lines the same.  The ``--no-equal-move``
-argument turns this off, in which case situations like those above raise
-exceptions.  (As a workaround if necessary with ``--no-equal-move``, using an
-explicit backslash line continuation seems to work.)
+The program currently handles this by removing the newlines up to the ``=``
+sign.  Any comments on those lines are also stripped, since otherwise they
+cause syntax errors.  Empty lines are added to the end to keep to total number
+of lines the same.  The ``--no-equal-move`` argument turns this off, in which
+case situations like those above raise exceptions.  (As a workaround if
+necessary to use ``--no-equal-move``, using an explicit backslash line
+continuation seems to work.)
 
 A similar situation can occur in return type specifications:
 

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 
 Usage: strip_from_string_test.py <filename>

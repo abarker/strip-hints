@@ -93,7 +93,8 @@ remaining, non-logical linebreaks.
    method as was used for individual function parameters.  If it is only a type
    definition (without an assignment) then turn it into a comment by changing the
    first character to pound sign.  Disallow `NL` tokens in whited-out code.
-   (TODO: update description for current code handling simple annotated expressions.)
+   If an annotated assignment then comments in the typedef are also whited out
+   to avoid the syntax errors they cause.
 
 The algorithm only handles simple annotated expressions in step 3 that start
 with a name, e.g., not ones like `(x) : int`.
@@ -151,9 +152,9 @@ class HintStripper(object):
 
     def check_whited_out_line_breaks(self, token_list, rpar_and_colon=None):
         """Check that a `TokenList` instance to be whited-out does not include a
-        newline (since it would no longer be nested and valid).  This routine
-        also moves the colon if `rpar_and_colon` is passed a token list and
-        the `--no-colon-move` option is not selected."""
+        newline (since the newlines would no longer be nested).  This routine
+        also moves the colon if `rpar_and_colon` is passed the corresponding token
+        # list (except if the `--no-colon-move` option is selected)."""
         # Note this check is used
         #    1) when the `--no-equal-move` option is selected
         #       to check annotated assignments
@@ -167,8 +168,14 @@ class HintStripper(object):
         # the "\" except implicitly in the start and end component numbers.
         # For some info, see these issues with backslash in untokenize and the two
         # distinct modes: https://bugs.python.org/issue12691
+        #
+        # Annotated expressions with assignment are different because you cannot
+        # just move the = sign like the colon (it has an expression after it).
+
         if self.strip_nl:
-            return # NL tokens will be set to empty strings, so no problem.
+            if not any(t.type_name == "COMMENT" for t in token_list):
+                return # NL tokens will be set to empty strings, OK with no comments.
+
         moved_colon = False
         for t in token_list:
             if t.type_name == "NL":
@@ -188,20 +195,16 @@ class HintStripper(object):
         """Process a single parameter in a function definition.  Setting `annassign`
         makes slight changes to instead handle annotated assignments."""
 
-        # First do exactly one split on colon or equal sign.
+        #
+        # First do exactly one split on the first colon or equal sign.
+        #
 
         split_on_colon_or_equal, splits = parameter.split(token_values=":=",
                                                           only_nestlevel=nesting_level,
                                                           sep_on_left=False, max_split=1,
                                                           return_splits=True)
         if len(split_on_colon_or_equal) == 1: # Just a variable name, no type or annotation.
-            if annassign:
-                # TODO: This code condition can never be reached.  Make sure and then delete.
-                self.check_whited_out_line_breaks(split_on_colon_or_equal[0])
-                for t in split_on_colon_or_equal[0]:
-                    t.to_whitespace(empty=self.to_empty, strip_nl=self.strip_nl)
             return
-
         assert len(split_on_colon_or_equal) == 2
         assert len(splits) == 1
 
@@ -210,13 +213,16 @@ class HintStripper(object):
         if splits[0].string == "=":
             return # Parameter is just a variable with a regular default value.
 
-        # At this point we found an annotation.
-        # Now do exactly one split the right part on equal.
+        #
+        # At this point we have an annotation (maybe with assignment) or a
+        # typed parameter (maybe with default).  Now do exactly one split of
+        # the right part, on equal, to test for an assignment or default value.
+        #
 
         split_on_equal = right_part.split(token_values="=",
                                           only_nestlevel=nesting_level,
                                           max_split=1, sep_on_left=False)
-        if len(split_on_equal) == 1: # Got a type def, no assignment or default.
+        if len(split_on_equal) == 1: # Got a type def, no assignment or default value.
             if annassign: # Make into a comment (if not a fun parameter).
                 skip_set = ignored_types_set.copy()
                 skip_set.remove(tokenize.NL)
@@ -233,21 +239,30 @@ class HintStripper(object):
                         first_non_nl_token = True
                 return
 
+        #
+        # At this point we have an annotated assignment or typed param with default.
+        #
+
         type_def = split_on_equal[0]
+        has_assignment = len(split_on_equal) > 1
 
         if annassign and self.no_equal_move:
             self.check_whited_out_line_breaks(type_def)
 
+        # Loop through counting newlines while whiting-out the type def part.
         nl_count = 0
         for t in type_def:
             if t.type == tokenize.NL:
                 nl_count += 1
             strip_nl = self.strip_nl
+            strip_comments = False
             if annassign and not self.no_equal_move:
-                strip_nl = True
-            t.to_whitespace(empty=self.to_empty, strip_nl=strip_nl)
+                strip_nl = True # Use strip_nl to move annassign's `= ...` part (if needed).
+                strip_comments = True # Comments can cause syntax errors with strip_nl.
+            t.to_whitespace(empty=self.to_empty,
+                            strip_nl=strip_nl, strip_comments=strip_comments)
 
-        has_assignment = len(split_on_equal) > 1
+        # Replace any stripped newlines so line numbers match after the change.
         if annassign and not self.no_equal_move and has_assignment:
             split_on_equal[1][-1].string += "\n" * nl_count
 
@@ -273,16 +288,18 @@ class HintStripper(object):
                                               nesting_level=nesting_level)
                 prev_comma_plus_one = count + 1
 
-
     def process_return_part(self, return_part, rpar_token):
         """Process the return part of the function definition (which may just be a
         colon if no `->` is used."""
+        colon_token = None
         if not return_part:
             return # Error condition, but ignore.
         for i in reversed(range(len(return_part))):
             if return_part[i].string == ":":
                 colon_token = return_part[i]
                 break
+        if colon_token is None:
+            raise StripHintsException("Error: colon_token not set in process_return_part.")
         return_type_spec = return_part[:i]
         self.check_whited_out_line_breaks(return_type_spec,
                                      rpar_and_colon=(rpar_token, colon_token))

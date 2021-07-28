@@ -73,8 +73,9 @@ class Token(object):
     """Represents a token from the Python tokenizer.
 
     The tokens are mutable via changing the named attributes such as `type` and
-    `string`.  Accessing the `token_tuple` property returns a tuple of the
-    current values (the format Python's `untokenize` function expects)."""
+    `string`.  Accessing the `token_tuple` property or converting to type `tuple`
+    returns a tuple of the current values (the format Python's `untokenize`
+    function expects)."""
 
     def __init__(self, token_iterable, nesting_level=None, filename=None,
                  compat_mode=False):
@@ -120,7 +121,7 @@ class Token(object):
             current_tuple = (self.type, self.string, self.start, self.end, self.line)
         return current_tuple
 
-    def to_whitespace(self, empty=False, strip_nl=False):
+    def to_whitespace(self, empty=False, strip_nl=False, strip_comments=False):
         """Convert the string or value of the token to a string of spaces of
         the same length as the original string.
 
@@ -131,12 +132,18 @@ class Token(object):
         if strip_nl and self.type == tokenize.NL:
             self.string = ""
             return
+        if strip_comments and self.type == tokenize.COMMENT:
+            self.string = ""
+            return
         if self.type in ignored_types_set:
             return
         if empty:
             self.string = ""
         else:
             self.string = " " * len(self.token_tuple[1])
+
+    def __tuple__(self):
+        return self.token_tuple
 
     def __repr__(self):
         return self.simple_repr()
@@ -270,7 +277,7 @@ class TokenList(object):
                            filename=filename, compat_mode=self.compat_mode))
 
     def untokenize(self, encoding=None):
-        """Convert the current list of tokens into code and return the code.
+        """Convert the current list of tokens into a code string and return it.
         If no `encoding` is supplied the one stored with the list from when
         it was created is used."""
         if not encoding:
@@ -282,7 +289,7 @@ class TokenList(object):
         result = tokenize.untokenize(token_tuples)
         if version == 2: # Decoding below causes a unicode error in Python 2.
             return result
-        decoded_result = result.decode(encoding)
+        decoded_result = result if isinstance(result, str) else result.decode(encoding)
         return decoded_result
 
     def iter_with_skips(self, skip_types=None, skip_type_names=None, skip_values=None):

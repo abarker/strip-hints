@@ -69,3 +69,25 @@ def f():
     # f 2
 
     pass
+
+#
+# Below tests comments in the new lines, which cause their own problems.
+#
+
+# Note: this one below fails with --no-colon-move option (as it should).
+def egg(x    ):          # function
+
+              # first arg
+              # second arg
+
+        # another comment
+          
+    pass
+
+d['c']                                           = a[ 4 ,5]
+
+
+
+
+
+

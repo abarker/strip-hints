@@ -69,3 +69,25 @@ def f():
     # f 2
 
     pass
+
+#
+# Below tests comments in the new lines, which cause their own problems.
+#
+
+# Note: this one below fails with --no-colon-move option (as it should).
+def egg(x:int) -> List[ # function
+
+        int,  # first arg
+        float # second arg
+
+        # another comment
+        ] :
+    pass
+
+d['c']: List[ # This works, but adds all the whitespace before the `= 0`
+        # Another comment.
+
+        int,  # part on the first line (the `=` is moved up).Q
+
+        int] = a[ 4 ,5]
+

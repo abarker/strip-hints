@@ -8,6 +8,13 @@ Changelog
 
 Added the options ``--outfile`` and ``--inplace``, along with ``--help``.
 
+Bug fixes:
+
+* Fixed a bug where comments in function return hints that contain both newlines
+  and comments cause syntax error when the ``--strip-nl`` option is used.
+
+* Fixed a bug in multiline annotated expressions with comments on the lines.
+
 0.1.9 (2020-05-06)
 ------------------
 
