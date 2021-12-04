@@ -343,11 +343,13 @@ class HintStripper(object):
         """The main program to strip type hints from the given `TokenList` instance.
         Returns the stripped code as a string."""
         # Get the tokens and split the lines into logical lines, etc.
-        if DEBUG: print("Original tokens:\n", tokens, sep="")
+        if DEBUG:
+            print("Original tokens:\n", tokens, sep="")
         logical_lines = tokens.split(token_types=logical_lines_split_types,
                                      token_values=logical_lines_split_values,
                                      isolated_separators=True, no_empty=True)
-        if DEBUG: print_list_of_token_lists(logical_lines, "Logical lines:")
+        if DEBUG:
+            print_list_of_token_lists(logical_lines, "Logical lines:")
 
         # Sequentially process the tokens.
         for t_list in logical_lines:
