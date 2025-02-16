@@ -1,0 +1,57 @@
+[build-system]
+
+requires = ["setuptools >= 61.0"]
+
+build-backend = "setuptools.build_meta"
+
+[project]
+
+name = "strip-hints"
+
+version = "0.1.11"
+
+description = "Function and command-line program to strip Python type hints."
+
+readme = "README.rst"
+
+license = {file = "LICENSE.txt"}
+
+authors = [
+    { name = "Allen Barker", email = "Allen.L.Barker@gmail.com" },
+]
+
+keywords = [
+    "annotations",
+    "hints",
+    "strip",
+    "type",
+    "typing",
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 2.7",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.3",
+    "Programming Language :: Python :: 3.4",
+    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Utilities",
+]
+
+dependencies = [
+    "wheel",
+]
+
+[project.scripts]
+strip-hints = "strip_hints.strip_hints_main:process_command_line"
+
+[project.urls]
+Homepage = "https://github.com/abarker/strip-hints"
+
