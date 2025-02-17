@@ -233,9 +233,9 @@ class HintStripper(object):
                     if t.type == tokenize.NL:
                         if not first_non_nl_token:
                             continue # Preceding comments are in token list; don't double the '#'.
-                        t.string = "\n#"
+                        t.string = "\npass #" # add pass to make the indentation valid
                     if not first_non_nl_token:
-                        t.string = "#" + t.string # was t.string[1:]
+                        t.string = "pass #" + t.string # was t.string[1:]
                         first_non_nl_token = True
                 return
 
