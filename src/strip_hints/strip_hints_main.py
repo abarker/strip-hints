@@ -229,14 +229,16 @@ class HintStripper(object):
                 annassign_token_list = list(parameter.iter_with_skips(skip_types=skip_set))
 
                 first_non_nl_token = False
+                string_added_to_first = "pass " # Add a pass to first so Protocol classes work.
                 for t in annassign_token_list: # Make each line start with '#' char.
                     if t.type == tokenize.NL:
                         if not first_non_nl_token:
                             continue # Preceding comments are in token list; don't double the '#'.
-                        t.string = "\npass #" # add pass to make the indentation valid
+                        t.string = f"\n{string_added_to_first}#" # add pass to make the indentation valid
                     if not first_non_nl_token:
-                        t.string = "pass #" + t.string # was t.string[1:]
+                        t.string = f"{string_added_to_first}#" + t.string # was t.string[1:]
                         first_non_nl_token = True
+                    string_added_to_first = ""
                 return
 
         #

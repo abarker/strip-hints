@@ -22,7 +22,7 @@ def foo(
   pass
 # x3
 
-#egg: List[
+pass #egg: List[
 #
 #        int
 #
@@ -41,11 +41,11 @@ egg            = 3
 # after 2
 
 # before 3
-#egg: List[int]
+pass #egg: List[int]
 # after 3
 
 # before 4
-#egg: List[
+pass #egg: List[
 #
 #        int
 #
@@ -53,19 +53,19 @@ egg            = 3
 # after 4
 
 x = 3
-#egg: List[int]
+pass #egg: List[int]
 x = 3
 
 egg
 
 def f():
-    #egg: List[int]
+    pass #egg: List[int]
 
     pass
 
 def f():
     # f 1
-    #egg: List[int]
+    pass #egg: List[int]
     # f 2
 
     pass

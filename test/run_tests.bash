@@ -4,9 +4,10 @@
 
 # This picks up whatever Python is set in the virtualenv.  Explicitly change it
 # to test other versions.
-STRIP="python ../bin/strip_hints.py"
+STRIP="python3 ../bin/strip_hints.py"
 
 testfiles="really_simple_test.py
+           protocol_classes_test.py
            simple_test.py
            testfile_strip_hints.py
            testfile_strip_classes.py

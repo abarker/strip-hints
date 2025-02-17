@@ -23,7 +23,7 @@ e       = lambda x,y,z: lambda: 4*(3+3)
 
 """Triple string"""
 ggg = 44
-#xxx: int
+pass #xxx: int
 xxx       = ggg
 print(xxx); print(e)
 
@@ -44,8 +44,8 @@ def default_combine_chars_fun_ZZ(elem_list             , egg     =4)            
 def in_fun():
     e=3
     e=3 # comment
-    #xxx: int
-    #xxx: int # comment
+    pass #xxx: int
+    pass #xxx: int # comment
     xxx        = ggg
     xxx        = ggg # comment
     print(xxx)
