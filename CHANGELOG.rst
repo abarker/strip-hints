@@ -3,6 +3,14 @@
 Changelog
 =========
 
+0.1.12 (2025-02-15)
+-------------------
+
+Bug fixes:
+
+* Added a ``pass`` statement before commented-out annotations so ``Protocol``
+  classes work now.
+
 0.1.11 (2025-02-15)
 -------------------
 
