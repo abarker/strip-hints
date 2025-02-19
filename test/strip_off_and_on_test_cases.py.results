@@ -1,0 +1,83 @@
+"""
+
+Also applies to namedtuples...
+
+"""
+
+from dataclasses import dataclass
+from typing import NamedTuple
+
+#
+# Dataclass test.
+#
+
+pass #x: int
+pass #y: float
+
+def fun(x     ):
+    pass
+
+@dataclass
+class Point:
+    # strip-hints: off
+    x: int
+    y: int
+    # strip-hints: on
+
+pass #x: int
+pass #y: float
+
+def fun(x     ):
+    pass
+
+#
+# NamedTuple test.
+#
+
+pass #x: int
+pass #y: float
+
+def fun(x     ):
+    pass
+
+class Employee(NamedTuple):
+    # strip-hints: off
+    name: str
+    id: int = 3
+    # strip-hints: on
+
+
+pass #x: int
+pass #y: float
+
+def fun(x     ):
+    pass
+
+# strip-hints: off
+
+class Employee(NamedTuple):
+    name: str
+    id: int = 3
+
+x: int
+y: float
+
+def fun(x: int):
+    pass
+
+# strip-hints: on
+
+pass #x: int
+pass #y: float
+
+def fun(x     ):
+    pass
+
+# This is the standard form of namedtule without hints; code could potentially be rewritten.
+employee = Employee('Guido')
+assert employee.id == 3
+
+import typing, collections
+Employee = typing.NamedTuple('Employee', [('name', str), ('id', int)])
+Employee = collections.namedtuple('Employee', ['name', 'id'])
+

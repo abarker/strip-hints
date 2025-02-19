@@ -112,6 +112,9 @@ if __name__ == "__main__":
     print("Run the console script 'strip-hints' if installed with pip, otherwise"
           "\nrun the Python script 'strip-hints.py' in the 'bin' directory.")
 
+STRIP_HINTS_ON_COMMENT = "# strip-hints: on"   # Comment to toggle on stripping.
+STRIP_HINTS_OFF_COMMENT = "# strip-hints: off" # Comment to toggle off stripping.
+
 from .token_list import (TokenList, print_list_of_token_lists, ignored_types_set,
                          version, StripHintsException)
 if version == 2:
@@ -353,8 +356,25 @@ class HintStripper(object):
         if DEBUG:
             print_list_of_token_lists(logical_lines, "Logical lines:")
 
+        #
         # Sequentially process the tokens.
+        #
+
+        HINT_STRIPPING = True
         for t_list in logical_lines:
+            # Skip stripping if a STRIP_HINTS_OFF_COMMENT is active.
+            for t in t_list:
+                if t.type_name == "COMMENT":
+                    comment_text = t.string.strip()
+                    if comment_text.startswith(STRIP_HINTS_OFF_COMMENT):
+                        HINT_STRIPPING = False
+                    elif comment_text.startswith(STRIP_HINTS_ON_COMMENT):
+                        HINT_STRIPPING = True
+                    break
+                if t.type not in ignored_types_set:
+                    break
+            if not HINT_STRIPPING:
+                continue
 
             # Check for a function definition; process it separately if one is found.
             if not self.only_assigns_and_defs:

@@ -4,7 +4,8 @@
 Usage: strip_from_string_test.py <filename>
 
 The file is read as a string, the string is stripped, and the output is compared
-with the result read directly from the file.
+with the result read directly from the file.  It is really only testing the difference
+between the `strip_file_to_string` and `strip_file_to_string`.
 
 """
 

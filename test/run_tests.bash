@@ -8,6 +8,7 @@ STRIP="python3 ../bin/strip_hints.py"
 
 testfiles="really_simple_test.py
            protocol_classes_test.py
+           strip_off_and_on_test_cases.py
            simple_test.py
            testfile_strip_hints.py
            testfile_strip_classes.py
@@ -33,6 +34,6 @@ echo
 for testfile in $testfiles
 do
    echo "============ $testfile ======================================"
-   python run_strip_from_string_test.py $testfile
+   python3 run_strip_from_string_test.py $testfile
 done
 
