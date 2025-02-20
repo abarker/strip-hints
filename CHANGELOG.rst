@@ -3,6 +3,15 @@
 Changelog
 =========
 
+0.1.13 (2025-xx-xx)
+-------------------
+
+New features:
+
+* Standalone comment lines that start with ``# strip-hints: off`` now turn off
+  hint-stripping.  Standalone comments that start with ``# strip-hints: on`` turn
+  it back on.  This can be used as a workaround with, for example, dataclasses.
+
 0.1.12 (2025-02-15)
 -------------------
 

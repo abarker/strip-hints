@@ -104,6 +104,29 @@ Alternately, you can install the development repo with pip::
    cd <pathToMainProjectDirectory> 
    pip install .  # use -e for development mode
 
+Disabling for sections of code
+------------------------------
+
+Any comment line that starts with ``# strip-hints: off`` will turn off
+stripping until another comment line that starts with ``# strip-hints: on``.
+For example, these examples would turn off stripping for the dataclass.
+
+.. code-block:: python
+
+    @dataclass
+    class Point:
+        # strip-hints: off
+        x: int
+        y: int
+        # strip-hints: on
+
+    # strip-hints: off
+    @dataclass
+    class Point:
+        x: int
+        y: int
+    # strip-hints: on
+
 Automatically running on import
 -------------------------------
 
@@ -216,15 +239,5 @@ Bugs
 The code has been run on the Mypy source code and on some other examples, with
 the results parsed into ASTs and also visually inspected via diff.  Some edge
 cases may well remain to cause problems.  There is a Bash script in the ``test``
-directory which runs the program on files and shows the diffs.
-
-Possible enhancements
----------------------
-
-* Formal tests.
-  
-* Better argument-handling, help, etc. with argparse.
-
-* Better error warnings (raising exceptions with messages rather than just failing
-  assertions in some places).
+directory which runs the program on test files and shows the diffs.
 
