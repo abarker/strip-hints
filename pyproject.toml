@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 name = "strip-hints"
 
-version = "0.1.12"
+version = "0.1.13"
 
 description = "Function and command-line program to strip Python type hints."
 
