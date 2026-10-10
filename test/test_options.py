@@ -1,0 +1,105 @@
+"""Tests for the stripping options and the command-line interface."""
+
+import subprocess
+import sys
+
+import pytest
+
+from strip_hints import StripHintsException, strip_string_to_string as strip
+
+from test_strip_hints import TEST_DIR
+
+FUNDEF_RETURN_NL = "def f(a) -> List[\n    int]:\n    pass\n"
+ANNASSIGN_NL = "x: List[\n    int] = []\n"
+PARAM_NL = "def f(a: List[\n    int]) -> None:\n    pass\n"
+
+
+def run_cli(*args):
+    """Run the command-line script with `args` and return the completed process."""
+    script = TEST_DIR.parent / "bin" / "strip_hints.py"
+    return subprocess.run([sys.executable, str(script)] + [str(a) for a in args],
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+
+def test_only_assigns_and_defs():
+    """Function signatures are kept but annotated assignments are stripped."""
+    code = "def f(a: int) -> int:\n    return a\nx: int = 1\n"
+    expected = "def f(a: int) -> int:\n    return a\nx      = 1\n"
+    assert strip(code, only_assigns_and_defs=True) == expected
+
+
+@pytest.mark.parametrize("code, changes", [("x = 1\n", False), ("x: int = 1\n", True)])
+def test_only_test_for_changes(code, changes):
+    """Only a boolean telling whether anything would be stripped is returned."""
+    assert strip(code, only_test_for_changes=True) is changes
+
+
+def test_colon_move():
+    """The colon moves up to fix a line break in a return hint."""
+    assert strip(FUNDEF_RETURN_NL) == "def f(a):         \n        \n    pass\n"
+
+
+def test_no_colon_move_raises():
+    """With colon moving disabled a line break in a return hint raises."""
+    with pytest.raises(StripHintsException):
+        strip(FUNDEF_RETURN_NL, no_colon_move=True)
+
+
+def test_equal_move():
+    """The assignment moves up to fix a line break in a hint, keeping the line count."""
+    assert strip(ANNASSIGN_NL) == "x                = []\n\n"
+
+
+def test_no_equal_move_raises():
+    """With equal moving disabled a line break in an annotation raises."""
+    with pytest.raises(StripHintsException):
+        strip(ANNASSIGN_NL, no_equal_move=True)
+
+
+def test_line_break_in_parameter_hint_kept():
+    """A line break inside a nested parameter hint is kept by default."""
+    assert strip(PARAM_NL) == "def f(a       \n        )        :\n    pass\n"
+
+
+def test_strip_nl():
+    """With `strip_nl` a line break inside a parameter hint is removed."""
+    assert strip(PARAM_NL, strip_nl=True) == "def f(a               )        :\n    pass\n"
+
+
+@pytest.mark.parametrize("code, output, exit_code", [
+    ("x = 1\n", "False", 1),
+    ("x: int = 1\n", "True", 0),
+])
+def test_cli_only_test_for_changes(tmp_path, code, output, exit_code):
+    """The command line prints the change status and sets the exit code."""
+    infile = tmp_path / "code.py"
+    infile.write_text(code)
+    proc = run_cli(infile, "--only-test-for-changes")
+    assert proc.stdout.decode().strip() == output
+    assert proc.returncode == exit_code
+
+
+def test_cli_outfile(tmp_path):
+    """The `--outfile` option writes the result to a file, not stdout."""
+    infile, outfile = tmp_path / "code.py", tmp_path / "out.py"
+    infile.write_text("x: int = 1\n")
+    proc = run_cli(infile, "--outfile", outfile)
+    assert proc.returncode == 0 and proc.stdout == b""
+    assert outfile.read_text() == "x      = 1\n"
+
+
+def test_cli_inplace(tmp_path):
+    """The `--inplace` option overwrites the input file."""
+    infile = tmp_path / "code.py"
+    infile.write_text("x: int = 1\n")
+    assert run_cli(infile, "--inplace").returncode == 0
+    assert infile.read_text() == "x      = 1\n"
+
+
+def test_cli_invalid_output_fails(tmp_path):
+    """Code that cannot be stripped to valid code gives a nonzero exit code."""
+    infile = tmp_path / "code.py"
+    infile.write_text(ANNASSIGN_NL)
+    proc = run_cli(infile, "--no-equal-move")
+    assert proc.returncode != 0
+    assert b"StripHintsException" in proc.stderr

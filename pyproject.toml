@@ -52,6 +52,14 @@ dependencies = [
 [project.scripts]
 strip-hints = "strip_hints.strip_hints_main:process_command_line"
 
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
 [project.urls]
 Homepage = "https://github.com/abarker/strip-hints"
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+norecursedirs = ["cases"]
+pythonpath = ["src"]
 
