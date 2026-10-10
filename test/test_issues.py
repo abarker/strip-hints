@@ -25,6 +25,8 @@ def exec_code(code):
 @pytest.mark.parametrize("code, expected", [
     ("#", "#"),
     ("x: int = 1", "x      = 1"),
+    ("x: int = 1\n# end", "x      = 1\n# end"),
+    ("def f(a: int):\n    pass\n# end", "def f(a     ):\n    pass\n# end"),
 ])
 def test_issue_4_no_trailing_newline(code, expected):
     """Code without a final newline is stripped without error."""

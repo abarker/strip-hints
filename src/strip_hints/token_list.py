@@ -203,6 +203,7 @@ class TokenList(object):
             self.compat_mode = True
         else:
             self.compat_mode = False
+        self.added_final_newline = False
 
         if "filename" in kwargs:
             self.read_from_file(kwargs["filename"])
@@ -259,7 +260,18 @@ class TokenList(object):
         # Todo: Compat mode arg handling could be cleaned up in this method and class.
         if compat_mode:
             self.compat_mode = compat_mode
-        tok_generator = call_tokenize(readline)
+        self.added_final_newline = False
+
+        def readline_with_final_newline():
+            """Read a line, adding a newline if the last line lacks one."""
+            # Untokenize in Python 3.8 and earlier can fail without a final newline.
+            line = readline()
+            if line and line[-1:] not in (b"\n", "\n"):
+                self.added_final_newline = True
+                line += b"\n" if isinstance(line, bytes) else "\n"
+            return line
+
+        tok_generator = call_tokenize(readline_with_final_newline)
 
         self.token_list = []
         nesting_level = 0
@@ -290,6 +302,8 @@ class TokenList(object):
         if version == 2: # Decoding below causes a unicode error in Python 2.
             return result
         decoded_result = result if isinstance(result, str) else result.decode(encoding)
+        if self.added_final_newline and decoded_result.endswith("\n"):
+            decoded_result = decoded_result[:-1] # Remove the newline added when reading.
         return decoded_result
 
     def iter_with_skips(self, skip_types=None, skip_type_names=None, skip_values=None):
