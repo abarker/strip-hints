@@ -81,6 +81,10 @@ The command-line options are as follows:
    it prints ``True`` and exits with code 0.  Otherwise it prints ``False`` and
    exits with code 1.
 
+``--keep-class-annotations [NAMES]``
+   Keep the annotations in the bodies of classes where they define fields, such
+   as dataclasses.  See the section on dataclasses below.  Default is false.
+
 ``--no-colon-move``
    Do not move colons to fix line breaks that occur in the hints for the
    function return type.  Default is false.  See the Limitations section below
@@ -104,12 +108,47 @@ Alternately, you can install the development repo with pip::
    cd <pathToMainProjectDirectory> 
    pip install .  # use -e for development mode
 
+Dataclasses and similar classes
+-------------------------------
+
+In some classes the annotations in the class body define the fields of the
+class and are used at runtime, so stripping them changes what the code does.
+The ``--keep-class-annotations`` option keeps the annotations directly in the
+bodies of these classes.  Method signatures, and everything outside the class
+bodies, are still stripped.
+
+A class is matched by its decorators and base classes, which are resolved
+through the imports in the file.  With no value the option matches only
+``dataclasses.dataclass``, ``typing.NamedTuple``, and ``typing.TypedDict``,
+and the ``typing_extensions`` versions of the last two.  A comma-separated
+list of names adds to these:
+
+.. code-block:: bash
+
+   strip-hints --keep-class-annotations pydantic,attr,attrs your_file.py
+
+A name matches itself and any name inside it, so ``pydantic`` matches
+``pydantic.BaseModel`` and ``pydantic.dataclasses.dataclass``.  Names are the
+names used in imports, not the package names on PyPI.  Your own decorators and
+base classes can be given by their qualified names, such as
+``myapp.models.Base``, or by their bare names if they are defined in the same
+file.  Classes defined later in the same file that inherit from a matched class
+are also matched.
+
+Since matching uses the imports, a decorator named ``dataclass`` that is
+defined in the file itself is not matched as ``dataclasses.dataclass``.  The
+matching does not follow star imports, names that are reassigned, or classes
+from other files that inherit from a matched class (unless those classes are
+given by name).  The comments described in the next section can be used in
+those cases.
+
 Disabling for sections of code
 ------------------------------
 
 Any comment line that starts with ``# strip-hints: off`` will turn off
 stripping until another comment line that starts with ``# strip-hints: on``.
-For example, these examples would turn off stripping for the dataclass:
+For example, these examples would turn off stripping for the dataclass
+(the ``--keep-class-annotations`` option can also be used in this case):
 
 .. code-block:: python
 
@@ -141,7 +180,8 @@ are the default settings):
 
    from strip_hints import strip_on_import
    strip_on_import(__file__, to_empty=False, no_ast=False, no_colon_move=False,
-                   only_assigns_and_defs=False, py3_also=False)
+                   only_assigns_and_defs=False, py3_also=False,
+                   keep_class_annotations=None)
 
 By default Python 3 code is ignored unless ``py3_also`` is set.  The first
 argument is the file path of the calling module.
@@ -160,14 +200,17 @@ The option settings here are all the default values:
                                       no_ast=False, no_colon_move=False,
                                       no_equal_move=False,
                                       only_assigns_and_defs=False,
-                                      only_test_for_changes=False)
+                                      only_test_for_changes=False,
+                                      keep_class_annotations=None)
 
 To strip code that is originally in a string, rather than reading from a file,
 the function ``strip_string_to_string`` takes the same arguments as
 ``strip_file_to_string`` except that the first argument is ``code_string``.
 
 If ``only_test_for_changes`` is true then a boolean is returned which is true iff
-some changes would be made.
+some changes would be made.  The ``keep_class_annotations`` argument can be
+``True`` for the standard names, or a comma-separated string or a list of names
+to add to them.
 
 Limitations
 -----------

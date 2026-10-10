@@ -117,6 +117,7 @@ STRIP_HINTS_OFF_COMMENT = "# strip-hints: off" # Comment to toggle off stripping
 
 from .token_list import (TokenList, print_list_of_token_lists, ignored_types_set,
                          version, StripHintsException)
+from .class_annotations import ClassMatcher, parse_keep_names, significant_tokens
 if version == 2:
     from . import import_hooks
 else:
@@ -130,6 +131,7 @@ default_no_colon_move = False # Whether to move colon to fix linebreaks in retur
 default_no_equal_move = False # Whether to move = to fix deleted linebreaks in annotatated assigns.
 default_only_assigns_and_defs = False # Whether to keep fundef annotations, strip rest.
 default_only_test_for_changes = False # Print True and exit 0 if changes, otherwise False and 1.
+default_keep_class_annotations = None # Names of classes whose annotations are kept.
 
 DEBUG = False # Print debugging information if true.
 
@@ -143,7 +145,7 @@ if version == 3:
 class HintStripper(object):
     """Class holding the main stripping functions and the options as instance state."""
     def __init__(self, to_empty, strip_nl, no_ast,  no_colon_move, no_equal_move,
-                 only_assigns_and_defs):
+                 only_assigns_and_defs, keep_class_annotations=None):
         """Initialize, passing in options for how to process hints (see the default
         values above for details)."""
         self.to_empty = to_empty
@@ -152,6 +154,7 @@ class HintStripper(object):
         self.no_colon_move = no_colon_move
         self.no_equal_move = no_equal_move
         self.only_assigns_and_defs = only_assigns_and_defs
+        self.keep_class_names = parse_keep_names(keep_class_annotations)
 
     def check_whited_out_line_breaks(self, token_list, rpar_and_colon=None):
         """Check that a `TokenList` instance to be whited-out does not include a
@@ -360,8 +363,24 @@ class HintStripper(object):
         # Sequentially process the tokens.
         #
 
+        matcher = (ClassMatcher(logical_lines, self.keep_class_names)
+                   if self.keep_class_names is not None else None)
+        indent_depth = 0
+        kept_body_depths = [] # Indent depths of the bodies of matched classes.
+
         HINT_STRIPPING = True
         for t_list in logical_lines:
+            # Track the indent depth to find the bodies of classes whose annotations
+            # are kept.
+            if t_list[0].type == tokenize.INDENT:
+                indent_depth += 1
+            elif t_list[0].type == tokenize.DEDENT:
+                indent_depth -= 1
+                while kept_body_depths and kept_body_depths[-1] > indent_depth:
+                    kept_body_depths.pop()
+            elif matcher and matcher.starts_kept_body(significant_tokens(t_list)):
+                kept_body_depths.append(indent_depth + 1)
+
             # Skip stripping if a STRIP_HINTS_OFF_COMMENT is active.
             for t in t_list:
                 if t.type_name == "COMMENT":
@@ -383,6 +402,10 @@ class HintStripper(object):
                 if len(split_on_def) == 2:
                     self.process_funcdef_without_suite(split_on_def[1])
                     continue
+
+            # Keep the annotations directly in the body of a matched class.
+            if kept_body_depths and kept_body_depths[-1] == indent_depth:
+                continue
 
             # Check for an annassign.  Only recognizes a top-level NAME that is not
             # a keyword, that starts the line.
@@ -439,10 +462,12 @@ class HintStripper(object):
 
 def strip_file_to_string(filename, to_empty=False, strip_nl=False, no_ast=False,
                          no_colon_move=False, no_equal_move=False,
-                         only_assigns_and_defs=False, only_test_for_changes=False):
+                         only_assigns_and_defs=False, only_test_for_changes=False,
+                         keep_class_annotations=None):
     """Functional interface to strip hints from file `filename`.
     The remaining arguments are the same as the command-line arguments, except
-    with underscores.
+    with underscores.  The `keep_class_annotations` argument can be true, or a
+    comma-separated string or a sequence of names.
 
     Returns a string containing the stripped code unless
     `only_test_for_changes` is true, in which case a boolean is returned."""
@@ -455,7 +480,7 @@ def strip_file_to_string(filename, to_empty=False, strip_nl=False, no_ast=False,
 
     # Create the HintStripper and call its stripping method.
     stripper = HintStripper(to_empty, strip_nl, no_ast, no_colon_move, no_equal_move,
-                            only_assigns_and_defs)
+                            only_assigns_and_defs, keep_class_annotations)
     processed_code = stripper.strip_type_hints_from_file(filename)
 
     # Parse the code into an AST as an error check.
@@ -479,10 +504,12 @@ def strip_file_to_string(filename, to_empty=False, strip_nl=False, no_ast=False,
 
 def strip_string_to_string(code_string, to_empty=False, strip_nl=False, no_ast=False,
                            no_colon_move=False, no_equal_move=False,
-                           only_assigns_and_defs=False, only_test_for_changes=False):
+                           only_assigns_and_defs=False, only_test_for_changes=False,
+                           keep_class_annotations=None):
     """Functional interface to strip hints from the string `code_string`.
     The remaining arguments are the same as the command-line arguments, except
-    with underscores.
+    with underscores.  The `keep_class_annotations` argument can be true, or a
+    comma-separated string or a sequence of names.
 
     Returns a string containing the stripped code unless
     `only_test_for_changes` is true, in which case a boolean is returned."""
@@ -490,7 +517,7 @@ def strip_string_to_string(code_string, to_empty=False, strip_nl=False, no_ast=F
 
     # Create the HintStripper and call its stripping method.
     stripper = HintStripper(to_empty, strip_nl, no_ast,  no_colon_move, no_equal_move,
-                            only_assigns_and_defs)
+                            only_assigns_and_defs, keep_class_annotations)
     processed_code = stripper.strip_type_hints_from_string(code_string)
 
     # Parse the code into an AST as an error check.
@@ -513,7 +540,7 @@ def strip_string_to_string(code_string, to_empty=False, strip_nl=False, no_ast=F
 
 def strip_on_import(calling_module_filename, to_empty=False, strip_nl=False, no_ast=False,
                     no_colon_move=False, no_equal_move=False, only_assigns_and_defs=False,
-                    py3_also=False):
+                    py3_also=False, keep_class_annotations=None):
     """The function can usually just be called with `__file__` for the
     `module_filename` argument.  It runs `strip_hints` with the specified
     options on all files that are imported.
@@ -522,7 +549,7 @@ def strip_on_import(calling_module_filename, to_empty=False, strip_nl=False, no_
     # Could also have an option to load a '.py.stripped' file instead of the
     # actual file, to reduce overhead for actual version not in development.
     stripper = HintStripper(to_empty, strip_nl, no_ast,  no_colon_move, no_equal_move,
-                            only_assigns_and_defs)
+                            only_assigns_and_defs, keep_class_annotations)
     import_hooks.register_stripper_fun(calling_module_filename,
                                        stripper.strip_type_hints_from_file,
                                        py3_also=py3_also)
@@ -532,7 +559,7 @@ def parse_command_line():
 
     parser = argparse.ArgumentParser(description="Strip the hints from a Python module.")
 
-    parser.add_argument("code_file", type=str, nargs=1, metavar="PYTHONFILE",
+    parser.add_argument("code_file", type=str, nargs="?", metavar="PYTHONFILE",
                         default=None, help="The Python file to strip hints out of.")
     parser.add_argument("--outfile", "-o", type=str, nargs=1, metavar="OUTPUTFILE",
                         default=None,
@@ -583,8 +610,25 @@ def parse_command_line():
                         stripping would be done then it prints `True` and
                         exits with code 0.  Otherwise it prints `False` and
                         exits with code 1.""")
+    parser.add_argument("--keep-class-annotations", nargs="?", const="",
+                        default=default_keep_class_annotations, metavar="NAMES",
+                        help="""Keep the annotations in the bodies of classes where
+                        they define fields, such as dataclasses.  Classes are
+                        matched by their decorators and base classes, resolved
+                        through the imports in the file.  With no value only
+                        `dataclasses.dataclass`, `typing.NamedTuple`, and
+                        `typing.TypedDict` (and their `typing_extensions`
+                        versions) are matched.  A comma-separated list of
+                        qualified names, such as `pydantic,attr,attrs`, adds
+                        to these.  A name also matches any name inside it.""")
 
     cmdline_args = parser.parse_args()
+    # An option value with no file argument after it is taken as the file.
+    if cmdline_args.code_file is None and cmdline_args.keep_class_annotations:
+        cmdline_args.code_file = cmdline_args.keep_class_annotations
+        cmdline_args.keep_class_annotations = ""
+    if cmdline_args.code_file is None:
+        parser.error("the following arguments are required: PYTHONFILE")
     return cmdline_args
 
 #
@@ -595,10 +639,11 @@ def process_command_line():
     """Process the file on the command line when run as a script or entry point."""
 
     args = parse_command_line()
-    code_file = args.code_file[0]
+    code_file = args.code_file
     processed_code = strip_file_to_string(code_file, args.to_empty, args.strip_nl,
                           args.no_ast, args.no_colon_move, args.no_equal_move,
-                          args.only_assigns_and_defs, args.only_test_for_changes)
+                          args.only_assigns_and_defs, args.only_test_for_changes,
+                          args.keep_class_annotations)
 
     if args.inplace:
         args.outfile = [code_file]

@@ -51,26 +51,25 @@ def test_issue_15_protocol_class_body():
 
 
 @pytest.mark.skipif(sys.version_info < (3, 7), reason="Dataclasses need 3.7.")
-@pytest.mark.xfail(strict=True, reason="Issue #16, dataclass fields are stripped.")
 def test_issue_16_dataclass_fields_kept():
-    """Dataclass fields still work after stripping."""
+    """Dataclass fields still work after stripping with `keep_class_annotations`."""
     code = ("from dataclasses import dataclass\n"
             "@dataclass\n"
             "class Point:\n"
             "    x: int\n"
             "    y: int = 0\n")
-    point = exec_code(strip(code))["Point"](1, 2)
+    point = exec_code(strip(code, keep_class_annotations=True))["Point"](1, 2)
     assert (point.x, point.y) == (1, 2)
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #16, NamedTuple fields are stripped.")
 def test_issue_16_namedtuple_fields_kept():
-    """Class-syntax `NamedTuple` fields still work after stripping."""
+    """Class-syntax `NamedTuple` fields still work after stripping with
+    `keep_class_annotations`."""
     code = ("from typing import NamedTuple\n"
             "class Employee(NamedTuple):\n"
             "    name: str\n"
             "    id: int = 3\n")
-    employee = exec_code(strip(code))["Employee"]("Guido")
+    employee = exec_code(strip(code, keep_class_annotations=True))["Employee"]("Guido")
     assert (employee.name, employee.id) == ("Guido", 3)
 
 
