@@ -15,7 +15,8 @@ import sys
 import os
 from importlib import invalidate_caches
 from importlib.abc import SourceLoader
-from importlib.machinery import FileFinder
+from importlib.machinery import (FileFinder, ExtensionFileLoader, SourcelessFileLoader,
+                                 EXTENSION_SUFFIXES, SOURCE_SUFFIXES, BYTECODE_SUFFIXES)
 
 version = sys.version_info[0]
 
@@ -40,13 +41,18 @@ class StripHintsSourceLoader(SourceLoader):
             stripper_fun_to_use = stripper_funs[canonical_module_dir_path]
             source = stripper_fun_to_use(module_path)
         else:
-            with open(module_path) as f:
+            with open(module_path, "rb") as f: # Bytes, so coding declarations are used.
                 source = f.read()
         return source
 
-def install(loader_details):
-    # Insert the path hook ahead of other path hooks.
-    sys.path_hooks.insert(0, FileFinder.path_hook(loader_details))
+def install():
+    """Insert a path hook using the hint-stripping loader for source files."""
+    # The hook replaces the default one for all directories, so it also needs the
+    # default loaders for extension modules and bytecode files.
+    loader_details = [(ExtensionFileLoader, EXTENSION_SUFFIXES),
+                      (StripHintsSourceLoader, SOURCE_SUFFIXES),
+                      (SourcelessFileLoader, BYTECODE_SUFFIXES)]
+    sys.path_hooks.insert(0, FileFinder.path_hook(*loader_details))
     # Clear any loaders that might already be in use by the FileFinder.
     sys.path_importer_cache.clear()
     invalidate_caches()
@@ -63,8 +69,7 @@ def register_stripper_fun(calling_module_file, stripper_fun, py3_also=False):
 
     global registered
     if not registered:
-        loader_details = StripHintsSourceLoader, [".py"]
-        install(loader_details)
+        install()
         registered = True
 
     canonical_dir_path = os.path.dirname(os.path.realpath(calling_module_file))

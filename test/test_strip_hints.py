@@ -74,6 +74,9 @@ def test_strip_on_import(tmp_path):
         "import strip_hints\n"
         "strip_hints.strip_on_import(__file__, py3_also=True)\n"
         "import hinted\n"
-        "assert hinted.x == 2 and hinted.f(3) == 3\n")
+        "assert hinted.x == 2 and hinted.f(3) == 3\n"
+        "import ctypes\n")  # Extension modules must still import after the hook.
     env = dict(os.environ, PYTHONPATH=str(SRC_DIR))
-    subprocess.run([sys.executable, str(tmp_path / "runner.py")], env=env, check=True)
+    proc = subprocess.run([sys.executable, str(tmp_path / "runner.py")], env=env,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    assert proc.returncode == 0, proc.stderr.decode()
