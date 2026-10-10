@@ -109,7 +109,7 @@ Disabling for sections of code
 
 Any comment line that starts with ``# strip-hints: off`` will turn off
 stripping until another comment line that starts with ``# strip-hints: on``.
-For example, these examples would turn off stripping for the dataclass.
+For example, these examples would turn off stripping for the dataclass:
 
 .. code-block:: python
 
