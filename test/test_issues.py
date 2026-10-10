@@ -38,6 +38,7 @@ def test_issue_14_to_empty_removes_whitespace():
     assert strip(code, to_empty=True) == "def f(a, b = 'x'): pass\n"
 
 
+@pytest.mark.skipif(sys.version_info < (3, 8), reason="Protocol needs 3.8.")
 def test_issue_15_protocol_class_body():
     """A class body containing only declarations stays valid after stripping."""
     code = ("from typing import Protocol\n"
@@ -47,6 +48,7 @@ def test_issue_15_protocol_class_body():
     exec_code(strip(code))
 
 
+@pytest.mark.skipif(sys.version_info < (3, 7), reason="Dataclasses need 3.7.")
 @pytest.mark.xfail(strict=True, reason="Issue #16, dataclass fields are stripped.")
 def test_issue_16_dataclass_fields_kept():
     """Dataclass fields still work after stripping."""
