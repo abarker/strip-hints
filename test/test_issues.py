@@ -109,9 +109,7 @@ def test_issue_23_pep695_function_hints_stripped():
     assert "w: F" not in stripped and "-> F" not in stripped
 
 
-@pytest.mark.skipif(sys.version_info < (3, 12), reason="F-string tokens are new in 3.12.")
 @pytest.mark.parametrize("fstring", ['f"{{"', 'f"}}"'])
-@pytest.mark.xfail(strict=True, reason="Escaped f-string braces change nesting levels.")
 def test_fstring_escaped_braces_do_not_change_nesting(fstring):
     """Escaped braces in an f-string do not affect stripping of later lines."""
     code = 'a = {0}\nd["k"]: int = 1\n'.format(fstring)

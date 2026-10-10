@@ -191,9 +191,9 @@ class TokenList(object):
         the default full mode (five-element token tuples).
 
         Nesting levels are currently only set when reading from a string or
-        file.  Nesting levels start at zero and increase on any character in
+        file.  Nesting levels start at zero and increase on any operator token in
         `nest_open` (class attribute above) and decrease just after any
-        character in `nest_close`."""
+        operator token in `nest_close`."""
         if "encoding" in kwargs:
             self.encoding = kwargs["encoding"]
         else:
@@ -280,9 +280,10 @@ class TokenList(object):
             if lower_nest_level:
                 nesting_level -= 1
                 lower_nest_level = False
-            if tok[1] in self.nest_open:
+            # Only count operators, since f-string parts like `{{` can also match.
+            if tok[0] == tokenize.OP and tok[1] in self.nest_open:
                 nesting_level += 1
-            elif tok[1] in self.nest_close:
+            elif tok[0] == tokenize.OP and tok[1] in self.nest_close:
                 lower_nest_level = True # Lower for next token.
 
             self.token_list.append(Token(tok, nesting_level=nesting_level,
