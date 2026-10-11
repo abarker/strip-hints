@@ -12,6 +12,8 @@ from test_strip_hints import TEST_DIR
 FUNDEF_RETURN_NL = "def f(a) -> List[\n    int]:\n    pass\n"
 ANNASSIGN_NL = "x: List[\n    int] = []\n"
 PARAM_NL = "def f(a: List[\n    int]) -> None:\n    pass\n"
+FUNDEF_AND_ASSIGN = "def f(a: int) -> int:\n    return a\nx: int = 1\n"
+INVALID = "x = 1 +\n" # Tokenizes, but is not valid Python.
 
 
 def run_cli(*args):
@@ -23,9 +25,8 @@ def run_cli(*args):
 
 def test_only_assigns_and_defs():
     """Function signatures are kept but annotated assignments are stripped."""
-    code = "def f(a: int) -> int:\n    return a\nx: int = 1\n"
     expected = "def f(a: int) -> int:\n    return a\nx      = 1\n"
-    assert strip(code, only_assigns_and_defs=True) == expected
+    assert strip(FUNDEF_AND_ASSIGN, only_assigns_and_defs=True) == expected
 
 
 @pytest.mark.parametrize("code, changes", [("x = 1\n", False), ("x: int = 1\n", True)])
@@ -66,6 +67,20 @@ def test_strip_nl():
     assert strip(PARAM_NL, strip_nl=True) == "def f(a               )        :\n    pass\n"
 
 
+def test_to_empty():
+    """With `to_empty` the hints are removed instead of turned into spaces."""
+    # The leftover spaces are issue #14, so this changes with the output redesign.
+    code = "def f(a: int, b: str = 'x') -> None: pass\nx: int = 1\n"
+    assert strip(code, to_empty=True) == "def f(a , b  = 'x')  : pass\nx  = 1\n"
+
+
+def test_no_ast():
+    """With `no_ast` the output is not checked by parsing it."""
+    with pytest.raises(SyntaxError):
+        strip(INVALID)
+    assert strip(INVALID, no_ast=True) == INVALID
+
+
 @pytest.mark.parametrize("code, output, exit_code", [
     ("x = 1\n", "False", 1),
     ("x: int = 1\n", "True", 0),
@@ -96,10 +111,33 @@ def test_cli_inplace(tmp_path):
     assert infile.read_text() == "x      = 1\n"
 
 
-def test_cli_invalid_output_fails(tmp_path):
+@pytest.mark.parametrize("flag, code", [
+    ("--to-empty", FUNDEF_AND_ASSIGN),
+    ("--strip-nl", PARAM_NL),
+    ("--only-assigns-and-defs", FUNDEF_AND_ASSIGN),
+    ("--no-ast", INVALID),
+])
+def test_cli_flags(tmp_path, flag, code):
+    """Each flag gives the same output as the matching function argument, and
+    differs from the default, so options passed in the wrong order are caught."""
+    infile = tmp_path / "code.py"
+    infile.write_text(code)
+    expected = strip(code, **{flag[2:].replace("-", "_"): True})
+    proc = run_cli(infile, flag)
+    assert proc.returncode == 0, proc.stderr.decode()
+    assert proc.stdout.decode() == expected
+    assert run_cli(infile).stdout.decode() != expected
+
+
+@pytest.mark.parametrize("flag, code", [
+    ("--no-equal-move", ANNASSIGN_NL),
+    ("--no-colon-move", FUNDEF_RETURN_NL),
+])
+def test_cli_invalid_output_fails(tmp_path, flag, code):
     """Code that cannot be stripped to valid code gives a nonzero exit code."""
     infile = tmp_path / "code.py"
-    infile.write_text(ANNASSIGN_NL)
-    proc = run_cli(infile, "--no-equal-move")
+    infile.write_text(code)
+    assert run_cli(infile).returncode == 0
+    proc = run_cli(infile, flag)
     assert proc.returncode != 0
     assert b"StripHintsException" in proc.stderr
