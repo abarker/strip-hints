@@ -88,7 +88,7 @@ def test_no_ast():
 def test_cli_only_test_for_changes(tmp_path, code, output, exit_code):
     """The command line prints the change status and sets the exit code."""
     infile = tmp_path / "code.py"
-    infile.write_text(code)
+    infile.write_bytes(code.encode("utf-8"))
     proc = run_cli(infile, "--only-test-for-changes")
     assert proc.stdout.decode().strip() == output
     assert proc.returncode == exit_code
@@ -97,7 +97,7 @@ def test_cli_only_test_for_changes(tmp_path, code, output, exit_code):
 def test_cli_outfile(tmp_path):
     """The `--outfile` option writes the result to a file, not stdout."""
     infile, outfile = tmp_path / "code.py", tmp_path / "out.py"
-    infile.write_text("x: int = 1\n")
+    infile.write_bytes(b"x: int = 1\n")
     proc = run_cli(infile, "--outfile", outfile)
     assert proc.returncode == 0 and proc.stdout == b""
     assert outfile.read_text() == "x      = 1\n"
@@ -106,7 +106,7 @@ def test_cli_outfile(tmp_path):
 def test_cli_inplace(tmp_path):
     """The `--inplace` option overwrites the input file."""
     infile = tmp_path / "code.py"
-    infile.write_text("x: int = 1\n")
+    infile.write_bytes(b"x: int = 1\n")
     assert run_cli(infile, "--inplace").returncode == 0
     assert infile.read_text() == "x      = 1\n"
 
@@ -121,7 +121,7 @@ def test_cli_flags(tmp_path, flag, code):
     """Each flag gives the same output as the matching function argument, and
     differs from the default, so options passed in the wrong order are caught."""
     infile = tmp_path / "code.py"
-    infile.write_text(code)
+    infile.write_bytes(code.encode("utf-8"))
     expected = strip(code, **{flag[2:].replace("-", "_"): True})
     proc = run_cli(infile, flag)
     assert proc.returncode == 0, proc.stderr.decode()
@@ -136,7 +136,7 @@ def test_cli_flags(tmp_path, flag, code):
 def test_cli_invalid_output_fails(tmp_path, flag, code):
     """Code that cannot be stripped to valid code gives a nonzero exit code."""
     infile = tmp_path / "code.py"
-    infile.write_text(code)
+    infile.write_bytes(code.encode("utf-8"))
     assert run_cli(infile).returncode == 0
     proc = run_cli(infile, flag)
     assert proc.returncode != 0

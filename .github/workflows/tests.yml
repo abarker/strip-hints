@@ -16,6 +16,9 @@ jobs:
         include:
           # Python 3.7 is only available on Ubuntu 22.04.
           - {os: ubuntu-22.04, python-version: "3.7"}
+          # One Windows job, mainly for line endings and encodings.  The case files
+          # are kept at LF line endings by `.gitattributes`.
+          - {os: windows-latest, python-version: "3.14"}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7

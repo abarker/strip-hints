@@ -1,0 +1,4 @@
+# Check out the test case files and their saved results exactly as committed,
+# with LF line endings.  Otherwise Git on Windows can convert them to CRLF, and
+# the tests compare the stripped output with the saved results byte for byte.
+test/cases/** -text

@@ -238,7 +238,7 @@ def run_command_line(tmp_path, args):
     """Run the command line on `DATACLASS_CODE` in a file, which replaces `{file}`
     in `args`, and return the completed process."""
     infile = tmp_path / "point.py"
-    infile.write_text(DATACLASS_CODE)
+    infile.write_bytes(DATACLASS_CODE.encode("utf-8"))
     script = TEST_DIR.parent / "bin" / "strip_hints.py"
     args = [a.format(file=infile) for a in args]
     return subprocess.run([sys.executable, str(script)] + args, stdout=subprocess.PIPE,
