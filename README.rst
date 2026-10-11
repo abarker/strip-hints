@@ -12,9 +12,9 @@ most cases, with the default options, both the line and column numbers are
 preserved.
 
 This program was originally written to strip hints from Python 2 code to allow
-for developing such code on Python 3 but running it with Python 2.  Since
-Python 2 is no longer maintained the program is no longer tested when run with
-Python 2 (but it probably still works).
+for developing such code on Python 3 but running it with Python 2.  Python 2
+is no longer supported, and the program now requires Python 3.6 or later.  The
+last version that runs on Python 2 is 0.1.10.
 
 This project also contains a general-purpose class named ``TokenList`` which
 allows lists of Python tokens to be operated on using an interface similar to
@@ -40,8 +40,8 @@ After installing with pip you can run the console script ``strip-hints``::
 
    strip-hints your_file_with_hints.py
 
-The code runs with Python 2 and Python 3.  The processed code is written to
-stdout.  The AST checker that is run on the processed code checks the code
+The code runs with Python 3.6 and later.  The processed code is written to
+stdout, in the same encoding and with the same line endings as the input file.  The AST checker that is run on the processed code checks the code
 against whatever version of Python the script is run with.
 
 The command-line options are as follows:
