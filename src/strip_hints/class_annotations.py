@@ -36,8 +36,7 @@ def split_on_commas(tokens):
     dropping any empty parts."""
     parts = [[]]
     for t in tokens:
-        if (t.type == tokenize.OP and t.string == ","
-                and t.nesting_level == tokens[0].nesting_level):
+        if t.is_op(",") and t.nesting_level == tokens[0].nesting_level:
             parts.append([])
         else:
             parts[-1].append(t)
@@ -48,7 +47,7 @@ def dotted_name(tokens):
     parts = []
     for t in tokens:
         expect_name = len(parts) % 2 == 0
-        if not (t.type == tokenize.NAME if expect_name else t.string == "."):
+        if not (t.type == tokenize.NAME if expect_name else t.is_op(".")):
             break
         parts.append(t.string)
     return "".join(parts).rstrip(".")
@@ -91,18 +90,18 @@ def class_bases(tokens):
     """Return the dotted names of the base classes in the tokens of a class
     statement.  Keyword arguments such as `metaclass=M` are skipped."""
     i = 2
-    if i < len(tokens) and tokens[i].string == "[": # Skip PEP 695 type parameters.
-        while not (tokens[i].string == "]" and tokens[i].nesting_level == 1):
+    if i < len(tokens) and tokens[i].is_op("["): # Skip PEP 695 type parameters.
+        while not (tokens[i].is_op("]") and tokens[i].nesting_level == 1):
             i += 1
         i += 1
-    if i >= len(tokens) or tokens[i].string != "(":
+    if i >= len(tokens) or not tokens[i].is_op("("):
         return []
     end = i + 1
-    while not (tokens[end].string == ")" and tokens[end].nesting_level == 1):
+    while not (tokens[end].is_op(")") and tokens[end].nesting_level == 1):
         end += 1
     bases = []
     for item in split_on_commas(tokens[i+1:end]):
-        if not any(t.string == "=" and t.nesting_level == 1 for t in item):
+        if not any(t.is_op("=") and t.nesting_level == 1 for t in item):
             bases.append(dotted_name(item))
     return [b for b in bases if b]
 
@@ -126,7 +125,7 @@ class ClassMatcher(object):
         which is followed by an indented body."""
         if not tokens:
             return False
-        if tokens[0].string == "@": # Decorators are the logical lines before a class.
+        if tokens[0].is_op("@"): # Decorators are the logical lines before a class.
             self.decorators.append(dotted_name(tokens[1:]))
             return False
         decorators, self.decorators = self.decorators, []

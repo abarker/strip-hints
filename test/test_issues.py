@@ -155,6 +155,20 @@ def test_fstring_escaped_braces_after_escape_unchanged(code):
     assert strip(code).splitlines()[1] == code.splitlines()[1]
 
 
+@pytest.mark.parametrize("code, expected", [
+    ('def w(self, g: str = f"x ({v})"\n):\n    pass\n',
+     'def w(self, g      = f"x ({v})"\n):\n    pass\n'),
+    ('x = f"{a}def"\ny: int = 1\n', 'x = f"{a}def"\ny      = 1\n'),
+    ('def f(a: int = f"{x},{y}", b: int = 2): pass\n',
+     'def f(a      = f"{x},{y}", b      = 2): pass\n'),
+    ('d[f"{k}]"]: int = 1\n', 'd[f"{k}]"]      = 1\n'),
+])
+def test_fstring_text_not_taken_as_operator(code, expected):
+    """F-string text that looks like an operator or `def` is not taken as one.
+    In Python 3.12 and later such text is a separate token."""
+    assert strip(code) == expected
+
+
 @pytest.mark.parametrize("fstring", ['f"{{"', 'f"}}"'])
 def test_fstring_escaped_braces_do_not_change_nesting(fstring):
     """Escaped braces in an f-string do not affect stripping of later lines."""

@@ -209,7 +209,9 @@ class HintStripper(object):
         # First do exactly one split on the first colon or equal sign.
         #
 
-        split_on_colon_or_equal, splits = parameter.split(token_values=":=",
+        split_on_colon_or_equal, splits = parameter.split(token_types=[tokenize.OP],
+                                                          token_values=[":", "="],
+                                                          disjunction=False,
                                                           only_nestlevel=nesting_level,
                                                           sep_on_left=False, max_split=1,
                                                           return_splits=True)
@@ -229,7 +231,8 @@ class HintStripper(object):
         # the right part, on equal, to test for an assignment or default value.
         #
 
-        split_on_equal = right_part.split(token_values="=",
+        split_on_equal = right_part.split(token_types=[tokenize.OP], token_values=["="],
+                                          disjunction=False,
                                           only_nestlevel=nesting_level,
                                           max_split=1, sep_on_left=False)
         if len(split_on_equal) == 1: # Got a type def, no assignment or default value.
@@ -286,11 +289,11 @@ class HintStripper(object):
         prev_comma_plus_one = 0
         inside_lambda = False
         for count, t in enumerate(parameters):
-            if t.string == "lambda":
+            if t.type == tokenize.NAME and t.string == "lambda":
                 inside_lambda = True
-            elif t.string == ":" and inside_lambda:
+            elif t.is_op(":") and inside_lambda:
                 inside_lambda = False
-            elif (t.string == "," and t.nesting_level == nesting_level
+            elif (t.is_op(",") and t.nesting_level == nesting_level
                                   and not inside_lambda):
                 self.process_single_parameter(parameters[prev_comma_plus_one:count],
                                               nesting_level=nesting_level)
@@ -307,7 +310,7 @@ class HintStripper(object):
         if not return_part:
             return # Error condition, but ignore.
         for i in reversed(range(len(return_part))):
-            if return_part[i].string == ":":
+            if return_part[i].is_op(":"):
                 colon_token = return_part[i]
                 break
         if colon_token is None:
@@ -322,7 +325,8 @@ class HintStripper(object):
         """Process the top line of a `funcdef` function definition."""
         if DEBUG: print("function def being processed is", funcdef_logical_line)
         nesting_level = funcdef_logical_line[0].nesting_level + 1
-        split_on_parens, splits = funcdef_logical_line.split(token_values="()",
+        split_on_parens, splits = funcdef_logical_line.split(token_types=[tokenize.OP],
+                                  token_values=["(", ")"], disjunction=False,
                                   only_nestlevel=nesting_level, return_splits=True,
                                   max_split=2, ignore_separators=True)
         if DEBUG: print_list_of_token_lists(split_on_parens, "Split on parens is:")
@@ -401,7 +405,8 @@ class HintStripper(object):
 
             # Check for a function definition; process it separately if one is found.
             if not self.only_assigns_and_defs:
-                split_on_def = t_list.split(token_values=["def"],
+                split_on_def = t_list.split(token_types=[tokenize.NAME],
+                                            token_values=["def"], disjunction=False,
                                             sep_on_left=False, max_split=1)
                 if len(split_on_def) == 2:
                     self.process_funcdef_without_suite(split_on_def[1])
@@ -427,7 +432,7 @@ class HintStripper(object):
 
                 # Skip past all dotted attributes after the initial name, e.g.
                 #    var.x.y: int
-                if non_ignored_toks[i].string == ".":
+                if non_ignored_toks[i].is_op("."):
                     i += 1
                     if i >= len(non_ignored_toks):
                         break
@@ -437,12 +442,12 @@ class HintStripper(object):
 
                 # Skip past all stuff inside brackets after the initial name, e.g.
                 #   d["key"]: int
-                elif non_ignored_toks[i].string == "[":
+                elif non_ignored_toks[i].is_op("["):
                     while True:
                         i += 1
                         if i >= len(non_ignored_toks):
                             break
-                        if (non_ignored_toks[i].string == "]"
+                        if (non_ignored_toks[i].is_op("]")
                                 and non_ignored_toks[i].nesting_level == 1):
                             break
                     i += 1
@@ -451,7 +456,7 @@ class HintStripper(object):
 
                 # If we are at a colon but we are not at the end then process
                 # as annotated assignment (end check is redundant but doesn't hurt).
-                if non_ignored_toks[i].string == ":" and i != len(non_ignored_toks) - 1:
+                if non_ignored_toks[i].is_op(":") and i != len(non_ignored_toks) - 1:
                     self.process_annassign(t_list)
                 break
 

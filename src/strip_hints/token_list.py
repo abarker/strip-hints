@@ -145,6 +145,12 @@ class Token(object):
         else:
             self.string = " " * len(self.token_tuple[1])
 
+    def is_op(self, *strings):
+        """Return true if the token is an operator token with one of the strings
+        `strings`.  Tokens of other types can have the same strings, such as the
+        text parts of f-strings in Python 3.12 and later."""
+        return self.type == tokenize.OP and self.string in strings
+
     def __tuple__(self):
         return self.token_tuple
 
@@ -400,9 +406,10 @@ class TokenList(object):
         Lists of properties (type names, types, or values) of the tokens to
         split on are passed to the method.  The resulting splits will be on
         tokens which satisfy any of the criteria.  If `disjunction` is false
-        then the conjunction of the separate lists is used instead (but
+        then the conjunction of the lists that are passed is used instead (but
         disjunction is still used within any list since those properties are
-        mutually exclusive).
+        mutually exclusive).  For example, operator tokens with certain values
+        can be selected with `token_types` and `token_values`.
 
         Separators are part of the `TokenList` to the right unless
         `sep_on_left` is true.  If `isolated_separators` is true separators are
@@ -430,10 +437,11 @@ class TokenList(object):
                 do_split = ((token_type_names and tok.type_name in token_type_names)
                            or (token_types and tok.type in token_types)
                            or (token_values and tok.value in token_values))
-            else: # Conjunction.
-                do_split = ((token_type_names and tok.type_name in token_type_names)
-                           and (token_types and tok.type in token_types)
-                           and (token_values and tok.value in token_values))
+            else: # Conjunction of the criteria that were passed.
+                do_split = ((token_type_names or token_types or token_values)
+                           and (not token_type_names or tok.type_name in token_type_names)
+                           and (not token_types or tok.type in token_types)
+                           and (not token_values or tok.value in token_values))
             if do_split:
                 num_splits += 1
                 splits.append(self.token_list[i])

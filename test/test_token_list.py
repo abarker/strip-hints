@@ -83,6 +83,33 @@ def test_to_source_drop_space_keeps_line_continuation():
     assert tokens.to_source(drop_space_before_emptied=True) == "x = 1 +\\\n\n"
 
 
+def make_tokens(*type_strings):
+    """Return a `TokenList` built from (type, string) pairs on one line."""
+    return TokenList([(tok_type, string, (1, col), (1, col + len(string)), "")
+                      for col, (tok_type, string) in enumerate(type_strings)])
+
+
+# A non-operator token with an operator's string, like an f-string text part
+# (which only exists in Python 3.12 and later).
+NOT_OP_COMMA = (tokenize.STRING, ",")
+
+
+def test_is_op():
+    """Only operator tokens match `is_op`."""
+    tokens = make_tokens((tokenize.OP, ","), NOT_OP_COMMA, (tokenize.OP, ")"))
+    assert [t.is_op(",", ")") for t in tokens] == [True, False, True]
+
+
+def test_split_conjunction():
+    """With `disjunction` false only tokens matching every criterion passed are
+    split on."""
+    tokens = make_tokens((tokenize.NAME, "a"), (tokenize.OP, ","), NOT_OP_COMMA,
+                         (tokenize.NAME, "b"))
+    parts = tokens.split(token_types=[tokenize.OP], token_values=[","],
+                         disjunction=False, ignore_separators=True)
+    assert [[t.string for t in p] for p in parts] == [["a"], [",", "b"]]
+
+
 def test_to_source_needs_source():
     """A `TokenList` built from token tuples has no source to copy."""
     tokens = TokenList(token_list("x = 1\n").token_list)

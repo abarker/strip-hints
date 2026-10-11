@@ -38,6 +38,11 @@ Bug fixes:
 * Escaped braces in f-strings (``{{`` and ``}}``) no longer cause later
   annotations to be left unstripped on Python 3.12 and later.
 
+* Text in f-strings that looks like an operator or ``def``, such as the
+  ``)`` in ``f"x ({y})"``, is no longer taken as one on Python 3.12 and
+  later.  This caused a ``SyntaxError``, a crash, or an unstripped
+  annotation.
+
 * F-strings with escaped braces after a backslash escape no longer cause a
   ``SyntaxError`` on some Python 3.12 patch releases.
 
