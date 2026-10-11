@@ -243,7 +243,10 @@ class TokenList(object):
         if compat_mode:
             self.compat_mode = compat_mode
         with contextlib.closing(get_textfile_stream(filename, encoding)) as stream:
-            return self.read_from_readline_interface(stream.readline, filename, compat_mode=compat_mode)
+            self.read_from_readline_interface(stream.readline, filename, compat_mode=compat_mode)
+        # Use the encoding the tokenizer found from a coding comment or BOM, if any.
+        if self.token_list and self.token_list[0].type_name == "ENCODING":
+            self.encoding = self.token_list[0].string
 
     def read_from_string(self, code_string, encoding="utf-8", compat_mode=False):
         """Read from the string `code_string` and return a list of tuples containing

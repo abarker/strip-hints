@@ -10,7 +10,7 @@ import sys
 
 import pytest
 
-from strip_hints import strip_string_to_string as strip
+from strip_hints import strip_string_to_string as strip, strip_file_to_string
 
 from test_strip_hints import TEST_DIR
 
@@ -82,14 +82,51 @@ def test_issue_20_crlf_preserved_in_string():
     assert strip(CRLF_CODE) == CRLF_STRIPPED
 
 
-def test_issue_20_crlf_preserved_in_outfile(tmp_path):
-    """CRLF line endings are kept in a file written by the command line."""
-    infile, outfile = tmp_path / "crlf.py", tmp_path / "out.py"
-    infile.write_bytes(CRLF_CODE.encode("utf-8"))
+def cli_output_bytes(tmp_path, code_bytes, to_outfile):
+    """Run the command line on a file containing `code_bytes` and return the
+    output bytes, written to stdout or to an output file."""
+    infile, outfile = tmp_path / "code.py", tmp_path / "out.py"
+    infile.write_bytes(code_bytes)
     script = TEST_DIR.parent / "bin" / "strip_hints.py"
-    subprocess.run([sys.executable, str(script), str(infile), "-o", str(outfile)],
-                   check=True)
-    assert outfile.read_bytes() == CRLF_STRIPPED.encode("utf-8")
+    args = [sys.executable, str(script), str(infile)]
+    args += ["-o", str(outfile)] if to_outfile else []
+    proc = subprocess.run(args, check=True, stdout=subprocess.PIPE)
+    return outfile.read_bytes() if to_outfile else proc.stdout
+
+
+@pytest.mark.parametrize("to_outfile", [False, True])
+def test_issue_20_crlf_preserved_by_command_line(tmp_path, to_outfile):
+    """CRLF line endings are kept by the command line, on stdout and in a file."""
+    output = cli_output_bytes(tmp_path, CRLF_CODE.encode("utf-8"), to_outfile)
+    assert output == CRLF_STRIPPED.encode("utf-8")
+
+
+LATIN1_CODE = '# -*- coding: latin-1 -*-\nx: int = 1\ns = "caf\xe9"\n'
+LATIN1_STRIPPED = '# -*- coding: latin-1 -*-\nx      = 1\ns = "caf\xe9"\n'
+
+
+def test_declared_encoding_used_for_file(tmp_path):
+    """A file is decoded with the encoding in its coding comment."""
+    infile = tmp_path / "code.py"
+    infile.write_bytes(LATIN1_CODE.encode("latin-1"))
+    assert strip_file_to_string(str(infile)) == LATIN1_STRIPPED
+
+
+def test_declared_encoding_ignored_for_string():
+    """A string is not decoded again using the encoding in its coding comment."""
+    assert strip(LATIN1_CODE) == LATIN1_STRIPPED
+
+
+@pytest.mark.parametrize("to_outfile", [False, True])
+@pytest.mark.parametrize("code_bytes, expected", [
+    (LATIN1_CODE.encode("latin-1"), LATIN1_STRIPPED.encode("latin-1")),
+    ('x: int = 1\ns = "caf\xe9"\n'.encode("utf-8-sig"),
+     'x      = 1\ns = "caf\xe9"\n'.encode("utf-8-sig")),
+])
+def test_encoding_preserved_by_command_line(tmp_path, to_outfile, code_bytes, expected):
+    """The command line writes the output in the encoding of the code file,
+    including a UTF-8 byte order mark."""
+    assert cli_output_bytes(tmp_path, code_bytes, to_outfile) == expected
 
 
 @pytest.mark.skipif(sys.version_info < (3, 11), reason="Starred subscripts need 3.11.")

@@ -477,7 +477,7 @@ def strip_file_to_string(filename, to_empty=False, strip_nl=False, no_ast=False,
     # As it is the strip-on-import function cannot do an AST check (but one
     # will be done anyway in parsing the code).
     #
-    # Todo: could take an encoding argument; default utf-8 is used.
+    # The encoding is taken from a coding comment or BOM, with UTF-8 as the default.
 
     # Create the HintStripper and call its stripping method.
     stripper = HintStripper(to_empty, strip_nl, no_ast, no_colon_move, no_equal_move,
@@ -654,11 +654,17 @@ def process_command_line():
         args.outfile = [code_file]
 
     if not args.only_test_for_changes:
+        # Write bytes in the encoding of the code file, so that the encoding and the
+        # line endings are kept unchanged on all platforms.
+        with open(code_file, "rb") as f:
+            encoding = tokenize.detect_encoding(f.readline)[0]
+        output = processed_code.encode(encoding)
         if not args.outfile:
-            print(processed_code, end="")
+            sys.stdout.flush()
+            sys.stdout.buffer.write(output)
         else:
-            with open(args.outfile[0], "w") as f:
-                f.write(str(processed_code))
+            with open(args.outfile[0], "wb") as f:
+                f.write(output)
     else:
         if processed_code: # The variable processed_code will be boolean in this case.
             print("True")
