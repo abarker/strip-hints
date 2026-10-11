@@ -472,6 +472,24 @@ class HintStripper(object):
 # The main functional interfaces.
 #
 
+def check_parses(processed_code, original_code, filename="<unknown>"):
+    """Parse the processed code with `ast` as an error check.  If it cannot be
+    parsed, the message of the `SyntaxError` says whether the original code can
+    be parsed by the running Python, to tell newer syntax from a bug."""
+    try:
+        ast.parse(processed_code, filename=filename)
+    except SyntaxError as e:
+        try:
+            ast.parse(original_code, filename=filename)
+        except SyntaxError:
+            e.msg += ("\n(The input code also cannot be parsed by Python {0}.{1}.  Run"
+                      " strip-hints with a Python version that can parse the input"
+                      " code.)".format(*sys.version_info))
+        else:
+            e.msg += ("\n(The input code can be parsed, so this is probably a bug in"
+                      " strip-hints.  Please report it.)")
+        raise
+
 def strip_file_to_string(filename, to_empty=False, strip_nl=False, no_ast=False,
                          no_colon_move=False, no_equal_move=False,
                          only_assigns_and_defs=False, only_test_for_changes=False,
@@ -497,11 +515,8 @@ def strip_file_to_string(filename, to_empty=False, strip_nl=False, no_ast=False,
 
     # Parse the code into an AST as an error check.
     if not stripper.no_ast:
-        if version == 2:
-            #ast.parse(processed_code.encode("latin-1")) # Make ASCII, not unicode.
-            ast.parse(processed_code.encode("utf-8"))
-        else:
-            ast.parse(processed_code, filename=filename)
+        with open(filename, "rb") as f:
+            check_parses(processed_code, f.read(), filename=filename)
 
     # Return the result.
     if not only_test_for_changes:
@@ -535,10 +550,7 @@ def strip_string_to_string(code_string, to_empty=False, strip_nl=False, no_ast=F
 
     # Parse the code into an AST as an error check.
     if not stripper.no_ast:
-        if version == 2:
-            ast.parse(processed_code.encode("utf-8"))
-        else:
-            ast.parse(processed_code)
+        check_parses(processed_code, code_string)
 
     # Return the result.
     if not only_test_for_changes:

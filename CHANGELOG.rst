@@ -56,6 +56,9 @@ Bug fixes:
 * Extension modules can be imported again after ``strip_on_import`` is
   called.
 
+* When the stripped code fails the final syntax check, the error message now
+  says whether the input code itself can be parsed by the running Python.
+
 Other changes:
 
 * Python 3.6 or later is now required.  The last version that runs on Python

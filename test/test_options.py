@@ -5,7 +5,9 @@ import sys
 
 import pytest
 
-from strip_hints import StripHintsException, strip_string_to_string as strip
+from strip_hints import (StripHintsException, strip_file_to_string,
+                         strip_string_to_string as strip)
+from strip_hints.strip_hints_main import HintStripper
 
 from test_strip_hints import TEST_DIR
 
@@ -96,6 +98,25 @@ def test_legacy_output():
     assert strip(TAB_CODE, legacy_output=True) == "x      = 1 # A tab before the comment.\n"
     assert strip(TO_EMPTY_CODE, to_empty=True, legacy_output=True) == (
             "def f(a , b  = 'x')  : pass\nx  = 1\n")
+
+
+def test_syntax_error_says_input_cannot_be_parsed(tmp_path):
+    """When the input code cannot be parsed either, the error message says so."""
+    with pytest.raises(SyntaxError, match="input code also cannot be parsed"):
+        strip(INVALID)
+    infile = tmp_path / "code.py"
+    infile.write_bytes(INVALID.encode("utf-8"))
+    with pytest.raises(SyntaxError, match="input code also cannot be parsed"):
+        strip_file_to_string(str(infile))
+
+
+def test_syntax_error_says_probable_bug(monkeypatch):
+    """When only the stripped code cannot be parsed, the error message says it is
+    probably a bug."""
+    monkeypatch.setattr(HintStripper, "strip_type_hints_from_string",
+                        lambda self, code: "x = (\n")
+    with pytest.raises(SyntaxError, match="probably a bug in strip-hints"):
+        strip("x = 1\n")
 
 
 def test_no_ast():

@@ -1,0 +1,2 @@
+# Include the test case files, which the tests in the source distribution need.
+graft test/cases

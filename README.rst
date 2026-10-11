@@ -204,8 +204,10 @@ are the default settings):
                    only_assigns_and_defs=False, py3_also=False,
                    keep_class_annotations=None, legacy_output=False)
 
-By default Python 3 code is ignored unless ``py3_also`` is set.  The first
-argument is the file path of the calling module.
+The ``py3_also`` argument must be set true, since otherwise the function does
+nothing.  The function dates from when strip-hints was used to run code with
+type hints under Python 2, and the default is kept false for backward
+compatibility.  The first argument is the file path of the calling module.
 
 Calling from a Python program
 -----------------------------
@@ -273,6 +275,15 @@ always nested inside parentheses.
 The program currently only handles simple annotated expressions (e.g.,
 it handles ``my_class.x: int`` and ``my_list[2]: int`` but not ``(x): int``).
 
+The stripped code is checked by parsing it with the Python version that runs
+strip-hints, so strip-hints must be run with a version that can parse the input
+code.  Only hints are removed, and newer syntax is left unchanged.  This
+includes the type parameter lists and ``type`` statements of Python 3.12
+(``def first[T](xs: list[T]) -> T:`` becomes ``def first[T](xs         )     :``),
+so code using them still needs Python 3.12 or later after stripping.  If the
+check fails, the error message says whether the input code itself can be
+parsed by the running Python.
+
 How it works
 ------------
 
@@ -282,9 +293,6 @@ much simpler task than parsing a program in full generality.  This allows an ad
 hoc approach based on splitting groups of tokens, taking into account the
 nesting level of the tokens to potentially split on.  Nesting level is based on
 the level count inside parentheses, brackets, and curly braces.
-
-* The tokenizer for Python 2 also works on code with type hints, as introduced in
-  Python 3.
 
 * Type hints can be removed, in most cases, simply by turning some tokens into
   whitespace.  This preserves line and column numbers in the files.  Whiting-out a
