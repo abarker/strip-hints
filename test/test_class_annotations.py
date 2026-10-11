@@ -234,18 +234,31 @@ def test_one_line_class_does_not_keep_next_block():
 # The command line.
 #
 
-@pytest.mark.parametrize("args", [
-    ["{file}", "--keep-class-annotations"],
-    ["{file}", "--keep-class-annotations", "attrs"],
-    ["--keep-class-annotations=", "{file}"],
-    ["--keep-class-annotations=attrs", "{file}"],
-])
-def test_command_line(tmp_path, args):
-    """The option works with or without a value, in the `=` form or after the file."""
+def run_command_line(tmp_path, args):
+    """Run the command line on `DATACLASS_CODE` in a file, which replaces `{file}`
+    in `args`, and return the completed process."""
     infile = tmp_path / "point.py"
     infile.write_text(DATACLASS_CODE)
     script = TEST_DIR.parent / "bin" / "strip_hints.py"
     args = [a.format(file=infile) for a in args]
-    result = subprocess.run([sys.executable, str(script)] + args, check=True,
-                            stdout=subprocess.PIPE, universal_newlines=True)
+    return subprocess.run([sys.executable, str(script)] + args, stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE, universal_newlines=True)
+
+
+@pytest.mark.parametrize("args", [
+    ["{file}", "--keep-std-class-annotations"],
+    ["-k", "{file}"],
+    ["--keep-class-annotations", "attrs", "{file}"],
+    ["{file}", "--keep-class-annotations=attrs"],
+    ["--keep-class-annotations", "attrs", "-k", "{file}"],
+])
+def test_command_line(tmp_path, args):
+    """Both options work, before or after the file."""
+    result = run_command_line(tmp_path, args)
+    assert result.returncode == 0, result.stderr
     assert result.stdout == strip(DATACLASS_CODE, keep_class_annotations=True)
+
+
+def test_command_line_names_option_needs_value(tmp_path):
+    """The names option without a value is an error."""
+    assert run_command_line(tmp_path, ["{file}", "--keep-class-annotations"]).returncode != 0

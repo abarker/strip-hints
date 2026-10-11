@@ -132,6 +132,7 @@ default_no_equal_move = False # Whether to move = to fix deleted linebreaks in a
 default_only_assigns_and_defs = False # Whether to keep fundef annotations, strip rest.
 default_only_test_for_changes = False # Print True and exit 0 if changes, otherwise False and 1.
 default_keep_class_annotations = None # Names of classes whose annotations are kept.
+default_keep_std_class_annotations = False # Keep annotations for the standard classes.
 
 DEBUG = False # Print debugging information if true.
 
@@ -610,20 +611,24 @@ def parse_command_line():
                         stripping would be done then it prints `True` and
                         exits with code 0.  Otherwise it prints `False` and
                         exits with code 1.""")
-    parser.add_argument("--keep-class-annotations", nargs="?", const="",
-                        default=default_keep_class_annotations, metavar="NAMES",
+    parser.add_argument("--keep-class-annotations", type=str, metavar="NAMES",
+                        default=default_keep_class_annotations,
                         help="""Keep the annotations in the bodies of classes where
-                        they define fields, such as dataclasses.  Classes are
-                        matched by their decorators and base classes, resolved
-                        through the imports in the file.  With no value only
-                        `dataclasses.dataclass`, `typing.NamedTuple`, and
-                        `typing.TypedDict` (and their `typing_extensions`
-                        versions) are matched.  A comma-separated list of
-                        qualified names, such as `pydantic,attr,attrs`, adds
-                        to these.  A name also matches any name inside it.
-                        Use the form `--keep-class-annotations=NAMES` or put
-                        the option after the file name, since otherwise the
-                        file name is read as the value.""")
+                        they define fields, for the standard classes of
+                        `--keep-std-class-annotations` and also for the classes
+                        named in NAMES.  This is a comma-separated list of
+                        qualified names, such as `pydantic,attr,attrs`.
+                        Classes are matched by their decorators and base
+                        classes, resolved through the imports in the file.  A
+                        name also matches any name inside it.""")
+    parser.add_argument("--keep-std-class-annotations", "-k", action="store_true",
+                        default=default_keep_std_class_annotations,
+                        help="""Keep the annotations in the bodies of classes where
+                        they define fields, for the standard classes only.
+                        These are the classes decorated with
+                        `dataclasses.dataclass` and the subclasses of
+                        `typing.NamedTuple` and `typing.TypedDict` (or their
+                        `typing_extensions` versions).""")
 
     cmdline_args = parser.parse_args()
     return cmdline_args
@@ -637,10 +642,13 @@ def process_command_line():
 
     args = parse_command_line()
     code_file = args.code_file[0]
+    keep_class_annotations = args.keep_class_annotations # Includes the standard classes.
+    if keep_class_annotations is None:
+        keep_class_annotations = args.keep_std_class_annotations
     processed_code = strip_file_to_string(code_file, args.to_empty, args.strip_nl,
                           args.no_ast, args.no_colon_move, args.no_equal_move,
                           args.only_assigns_and_defs, args.only_test_for_changes,
-                          args.keep_class_annotations)
+                          keep_class_annotations)
 
     if args.inplace:
         args.outfile = [code_file]

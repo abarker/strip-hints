@@ -81,9 +81,15 @@ The command-line options are as follows:
    it prints ``True`` and exits with code 0.  Otherwise it prints ``False`` and
    exits with code 1.
 
-``--keep-class-annotations[=NAMES]``
-   Keep the annotations in the bodies of classes where they define fields, such
-   as dataclasses.  See the section on dataclasses below.  Default is false.
+``--keep-class-annotations NAMES``
+   Keep the annotations in the bodies of classes where they define fields, for
+   the standard classes and also for the classes named in ``NAMES``, a
+   comma-separated list.  See the section on dataclasses below.
+
+``--keep-std-class-annotations`` (``-k``)
+   Keep the annotations in the bodies of classes where they define fields, for
+   the standard classes only, such as dataclasses.  See the section on
+   dataclasses below.  Default is false.
 
 ``--no-colon-move``
    Do not move colons to fix line breaks that occur in the hints for the
@@ -113,22 +119,21 @@ Dataclasses and similar classes
 
 In some classes the annotations in the class body define the fields of the
 class and are used at runtime, so stripping them changes what the code does.
-The ``--keep-class-annotations`` option keeps the annotations directly in the
-bodies of these classes.  Method signatures, and everything outside the class
-bodies, are still stripped.
+Two options keep the annotations directly in the bodies of these classes.
+Method signatures, and everything outside the class bodies, are still
+stripped.
 
 A class is matched by its decorators and base classes, which are resolved
-through the imports in the file.  With no value the option matches only
-``dataclasses.dataclass``, ``typing.NamedTuple``, and ``typing.TypedDict``,
-and the ``typing_extensions`` versions of the last two.  A comma-separated
-list of names adds to these:
+through the imports in the file.  The ``--keep-std-class-annotations`` option
+(``-k``) matches only the standard classes: ``dataclasses.dataclass``,
+``typing.NamedTuple``, and ``typing.TypedDict``, and the
+``typing_extensions`` versions of the last two.  The
+``--keep-class-annotations`` option takes a comma-separated list of names to
+match in addition to the standard classes:
 
 .. code-block:: bash
 
-   strip-hints --keep-class-annotations=pydantic,attr,attrs your_file.py
-
-Use the ``=`` form when giving names, or put the option after the file name.
-Otherwise a file name directly after the option is read as its value.
+   strip-hints --keep-class-annotations pydantic,attr,attrs your_file.py
 
 A name matches itself and any name inside it, so ``pydantic`` matches
 ``pydantic.BaseModel`` and ``pydantic.dataclasses.dataclass``.  Names are the
@@ -151,7 +156,7 @@ Disabling for sections of code
 Any comment line that starts with ``# strip-hints: off`` will turn off
 stripping until another comment line that starts with ``# strip-hints: on``.
 For example, these examples would turn off stripping for the dataclass
-(the ``--keep-class-annotations`` option can also be used in this case):
+(the ``--keep-std-class-annotations`` option can also be used in this case):
 
 .. code-block:: python
 
