@@ -559,7 +559,7 @@ def parse_command_line():
 
     parser = argparse.ArgumentParser(description="Strip the hints from a Python module.")
 
-    parser.add_argument("code_file", type=str, nargs="?", metavar="PYTHONFILE",
+    parser.add_argument("code_file", type=str, nargs=1, metavar="PYTHONFILE",
                         default=None, help="The Python file to strip hints out of.")
     parser.add_argument("--outfile", "-o", type=str, nargs=1, metavar="OUTPUTFILE",
                         default=None,
@@ -620,15 +620,12 @@ def parse_command_line():
                         `typing.TypedDict` (and their `typing_extensions`
                         versions) are matched.  A comma-separated list of
                         qualified names, such as `pydantic,attr,attrs`, adds
-                        to these.  A name also matches any name inside it.""")
+                        to these.  A name also matches any name inside it.
+                        Use the form `--keep-class-annotations=NAMES` or put
+                        the option after the file name, since otherwise the
+                        file name is read as the value.""")
 
     cmdline_args = parser.parse_args()
-    # An option value with no file argument after it is taken as the file.
-    if cmdline_args.code_file is None and cmdline_args.keep_class_annotations:
-        cmdline_args.code_file = cmdline_args.keep_class_annotations
-        cmdline_args.keep_class_annotations = ""
-    if cmdline_args.code_file is None:
-        parser.error("the following arguments are required: PYTHONFILE")
     return cmdline_args
 
 #
@@ -639,7 +636,7 @@ def process_command_line():
     """Process the file on the command line when run as a script or entry point."""
 
     args = parse_command_line()
-    code_file = args.code_file
+    code_file = args.code_file[0]
     processed_code = strip_file_to_string(code_file, args.to_empty, args.strip_nl,
                           args.no_ast, args.no_colon_move, args.no_equal_move,
                           args.only_assigns_and_defs, args.only_test_for_changes,

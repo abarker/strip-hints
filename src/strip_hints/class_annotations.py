@@ -15,7 +15,6 @@ from .token_list import ignored_types_set
 STANDARD_NAMES = ("dataclasses.dataclass", "typing.NamedTuple", "typing.TypedDict",
                   "typing_extensions.NamedTuple", "typing_extensions.TypedDict")
 
-
 def parse_keep_names(value):
     """Return the set of names to match for a `keep_class_annotations` value, or
     `None` if the option is off.  The value can be true for only the standard
@@ -28,11 +27,9 @@ def parse_keep_names(value):
         value = value.split(",")
     return set(STANDARD_NAMES).union(n.strip() for n in value if n.strip())
 
-
 def significant_tokens(logical_line):
     """Return a list of the tokens in a logical line, without comments or newlines."""
     return list(logical_line.iter_with_skips(skip_types=ignored_types_set))
-
 
 def split_on_commas(tokens):
     """Split a list of tokens on the commas at the nesting level of the first one,
@@ -46,7 +43,6 @@ def split_on_commas(tokens):
             parts[-1].append(t)
     return [p for p in parts if p]
 
-
 def dotted_name(tokens):
     """Return the dotted name, such as `a.b.c`, at the start of a list of tokens."""
     parts = []
@@ -56,7 +52,6 @@ def dotted_name(tokens):
             break
         parts.append(t.string)
     return "".join(parts).rstrip(".")
-
 
 def add_imports(tokens, import_map):
     """Add the local names bound by an import statement to `import_map`, which
@@ -80,20 +75,17 @@ def add_imports(tokens, import_map):
                 import_map.setdefault(item[-1].string, set()).add(
                                               module + separator + item[0].string)
 
-
 def resolve(name, import_map):
     """Return the set of qualified names that a dotted name can refer to.  A name
     that was not imported refers to itself."""
     first, dot, rest = name.partition(".")
     return {q + dot + rest for q in import_map.get(first, {first})}
 
-
 def name_matches(qualified_name, keep_names):
     """Return true if a qualified name is one of `keep_names` or is inside one of
     them, so that `pydantic` matches `pydantic.BaseModel`."""
     return any(qualified_name == k or qualified_name.startswith(k + ".")
                for k in keep_names)
-
 
 def class_bases(tokens):
     """Return the dotted names of the base classes in the tokens of a class
@@ -113,7 +105,6 @@ def class_bases(tokens):
         if not any(t.string == "=" and t.nesting_level == 1 for t in item):
             bases.append(dotted_name(item))
     return [b for b in bases if b]
-
 
 class ClassMatcher(object):
     """Match the class statements whose annotations are kept, one logical line at

@@ -236,12 +236,12 @@ def test_one_line_class_does_not_keep_next_block():
 
 @pytest.mark.parametrize("args", [
     ["{file}", "--keep-class-annotations"],
-    ["--keep-class-annotations", "{file}"],
+    ["{file}", "--keep-class-annotations", "attrs"],
     ["--keep-class-annotations=", "{file}"],
-    ["--keep-class-annotations", "attrs", "{file}"],
+    ["--keep-class-annotations=attrs", "{file}"],
 ])
 def test_command_line(tmp_path, args):
-    """The option works with or without a value, before or after the file."""
+    """The option works with or without a value, in the `=` form or after the file."""
     infile = tmp_path / "point.py"
     infile.write_text(DATACLASS_CODE)
     script = TEST_DIR.parent / "bin" / "strip_hints.py"

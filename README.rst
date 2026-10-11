@@ -81,7 +81,7 @@ The command-line options are as follows:
    it prints ``True`` and exits with code 0.  Otherwise it prints ``False`` and
    exits with code 1.
 
-``--keep-class-annotations [NAMES]``
+``--keep-class-annotations[=NAMES]``
    Keep the annotations in the bodies of classes where they define fields, such
    as dataclasses.  See the section on dataclasses below.  Default is false.
 
@@ -125,7 +125,10 @@ list of names adds to these:
 
 .. code-block:: bash
 
-   strip-hints --keep-class-annotations pydantic,attr,attrs your_file.py
+   strip-hints --keep-class-annotations=pydantic,attr,attrs your_file.py
+
+Use the ``=`` form when giving names, or put the option after the file name.
+Otherwise a file name directly after the option is read as its value.
 
 A name matches itself and any name inside it, so ``pydantic`` matches
 ``pydantic.BaseModel`` and ``pydantic.dataclasses.dataclass``.  Names are the
