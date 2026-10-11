@@ -23,28 +23,35 @@ def read_exact(path):
 
 def normalize(code):
     """Remove whitespace before line-continuation backslashes in `code`."""
-    # Newer patch releases of Python's untokenize keep this whitespace, while older
-    # ones drop it.  This can be removed once output no longer uses untokenize.
+    # Python's untokenize, used by the legacy output, keeps or drops this whitespace
+    # depending on the Python version.
     return re.sub(r"[ \t]+\\(?=\r?\n)", r"\\", code)
 
 
 def expected_results(case):
-    """Return the normalized saved stripped results for the case file `case`."""
-    return normalize(read_exact(CASES_DIR / (case + ".results")))
+    """Return the saved stripped results for the case file `case`."""
+    return read_exact(CASES_DIR / (case + ".results"))
 
 
 @pytest.mark.parametrize("case", CASES)
 def test_strip_file_to_string(case):
     """Stripping a case file gives the saved results."""
-    stripped = strip_hints.strip_file_to_string(str(CASES_DIR / case))
-    assert normalize(stripped) == expected_results(case)
+    assert strip_hints.strip_file_to_string(str(CASES_DIR / case)) == expected_results(case)
 
 
 @pytest.mark.parametrize("case", CASES)
 def test_strip_string_to_string(case):
     """Stripping a case file's contents as a string gives the saved results."""
     code = read_exact(CASES_DIR / case)
-    assert normalize(strip_hints.strip_string_to_string(code)) == expected_results(case)
+    assert strip_hints.strip_string_to_string(code) == expected_results(case)
+
+
+@pytest.mark.parametrize("case", CASES)
+def test_legacy_output(case):
+    """The legacy output matches the saved results, apart from the whitespace before
+    line continuations."""
+    stripped = strip_hints.strip_file_to_string(str(CASES_DIR / case), legacy_output=True)
+    assert normalize(stripped) == normalize(expected_results(case))
 
 
 @pytest.mark.parametrize("case", CASES)
@@ -60,7 +67,7 @@ def test_command_line(case):
     script = TEST_DIR.parent / "bin" / "strip_hints.py"
     proc = subprocess.run([sys.executable, str(script), str(CASES_DIR / case)],
                           stdout=subprocess.PIPE, check=True)
-    assert normalize(proc.stdout.decode("utf-8")) == expected_results(case)
+    assert proc.stdout.decode("utf-8") == expected_results(case)
 
 
 def test_strip_on_import(tmp_path):

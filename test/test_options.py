@@ -14,6 +14,8 @@ ANNASSIGN_NL = "x: List[\n    int] = []\n"
 PARAM_NL = "def f(a: List[\n    int]) -> None:\n    pass\n"
 FUNDEF_AND_ASSIGN = "def f(a: int) -> int:\n    return a\nx: int = 1\n"
 INVALID = "x = 1 +\n" # Tokenizes, but is not valid Python.
+TAB_CODE = "x: int = 1\t# A tab before the comment.\n"
+TO_EMPTY_CODE = "def f(a: int, b: str = 'x') -> None: pass\nx: int = 1\n"
 
 
 def run_cli(*args):
@@ -68,10 +70,32 @@ def test_strip_nl():
 
 
 def test_to_empty():
-    """With `to_empty` the hints are removed instead of turned into spaces."""
-    # The leftover spaces are issue #14, so this changes with the output redesign.
-    code = "def f(a: int, b: str = 'x') -> None: pass\nx: int = 1\n"
-    assert strip(code, to_empty=True) == "def f(a , b  = 'x')  : pass\nx  = 1\n"
+    """With `to_empty` the hints and the whitespace before them are removed."""
+    assert strip(TO_EMPTY_CODE, to_empty=True) == "def f(a, b = 'x'): pass\nx = 1\n"
+
+
+def test_to_empty_multiline_hints():
+    """With `to_empty` the lines inside multiline hints become empty, and the
+    line count is kept unless `strip_nl` is also used."""
+    code = "def f(a: int,\n      b: List[int] = []) -> Dict[str,\n          int]:\n    pass\n"
+    assert strip(code, to_empty=True) == "def f(a,\n      b = []):\n\n    pass\n"
+    assert strip(code, to_empty=True, strip_nl=True) == (
+            "def f(a,\n      b = []):\n    pass\n")
+
+
+def test_to_empty_keeps_line_continuation():
+    """A backslash line continuation in removed whitespace is kept."""
+    code = "def f(a) -> \\\n        int:\n    pass\n"
+    assert strip(code, to_empty=True) == "def f(a)\\\n:\n    pass\n"
+
+
+def test_legacy_output():
+    """The legacy output turns tabs between tokens into spaces, and leaves spaces
+    with `to_empty`."""
+    assert strip(TAB_CODE) == "x      = 1\t# A tab before the comment.\n"
+    assert strip(TAB_CODE, legacy_output=True) == "x      = 1 # A tab before the comment.\n"
+    assert strip(TO_EMPTY_CODE, to_empty=True, legacy_output=True) == (
+            "def f(a , b  = 'x')  : pass\nx  = 1\n")
 
 
 def test_no_ast():
@@ -116,6 +140,7 @@ def test_cli_inplace(tmp_path):
     ("--strip-nl", PARAM_NL),
     ("--only-assigns-and-defs", FUNDEF_AND_ASSIGN),
     ("--no-ast", INVALID),
+    ("--legacy-output", TAB_CODE),
 ])
 def test_cli_flags(tmp_path, flag, code):
     """Each flag gives the same output as the matching function argument, and

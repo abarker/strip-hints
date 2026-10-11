@@ -33,7 +33,6 @@ def test_issue_4_no_trailing_newline(code, expected):
     assert strip(code) == expected
 
 
-@pytest.mark.xfail(strict=True, reason="Issue #14, untokenize restores the whitespace.")
 def test_issue_14_to_empty_removes_whitespace():
     """With `to_empty` no whitespace is left where the hints were."""
     code = "def f(a: int, b: str = 'x') -> None: pass\n"
@@ -143,6 +142,17 @@ def test_issue_23_pep695_function_hints_stripped():
     stripped = strip(code)
     ast.parse(stripped)
     assert "w: F" not in stripped and "-> F" not in stripped
+
+
+@pytest.mark.parametrize("code", [
+    'def f(a: int) -> str:\n    return f"{a}\\n{{literal}}"\n',
+    'def f(a: int) -> str:\n    return f"\\n{{{a}}}"\n',
+])
+def test_fstring_escaped_braces_after_escape_unchanged(code):
+    """F-strings with escaped braces after a backslash escape are copied unchanged.
+    Python's untokenize, used by 0.1.13 and the legacy output, breaks them on some
+    Python 3.12 patch releases."""
+    assert strip(code).splitlines()[1] == code.splitlines()[1]
 
 
 @pytest.mark.parametrize("fstring", ['f"{{"', 'f"}}"'])

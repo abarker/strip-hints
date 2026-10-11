@@ -133,6 +133,7 @@ default_only_assigns_and_defs = False # Whether to keep fundef annotations, stri
 default_only_test_for_changes = False # Print True and exit 0 if changes, otherwise False and 1.
 default_keep_class_annotations = None # Names of classes whose annotations are kept.
 default_keep_std_class_annotations = False # Keep annotations for the standard classes.
+default_legacy_output = False # Use untokenize for the output, as in 0.1.13 and earlier.
 
 DEBUG = False # Print debugging information if true.
 
@@ -146,7 +147,8 @@ if version == 3:
 class HintStripper(object):
     """Class holding the main stripping functions and the options as instance state."""
     def __init__(self, to_empty, strip_nl, no_ast,  no_colon_move, no_equal_move,
-                 only_assigns_and_defs, keep_class_annotations=None):
+                 only_assigns_and_defs, keep_class_annotations=None,
+                 legacy_output=False):
         """Initialize, passing in options for how to process hints (see the default
         values above for details)."""
         self.to_empty = to_empty
@@ -156,6 +158,7 @@ class HintStripper(object):
         self.no_equal_move = no_equal_move
         self.only_assigns_and_defs = only_assigns_and_defs
         self.keep_class_names = parse_keep_names(keep_class_annotations)
+        self.legacy_output = legacy_output
 
     def check_whited_out_line_breaks(self, token_list, rpar_and_colon=None):
         """Check that a `TokenList` instance to be whited-out does not include a
@@ -454,7 +457,10 @@ class HintStripper(object):
 
         # Get the result and return it.
         if DEBUG: print("\nProcessed tokens:\n", tokens, sep="")
-        result = tokens.untokenize()
+        if self.legacy_output:
+            result = tokens.untokenize()
+        else:
+            result = tokens.to_source(drop_space_before_emptied=self.to_empty)
         return result
 
 #
@@ -464,7 +470,7 @@ class HintStripper(object):
 def strip_file_to_string(filename, to_empty=False, strip_nl=False, no_ast=False,
                          no_colon_move=False, no_equal_move=False,
                          only_assigns_and_defs=False, only_test_for_changes=False,
-                         keep_class_annotations=None):
+                         keep_class_annotations=None, legacy_output=False):
     """Functional interface to strip hints from file `filename`.
     The remaining arguments are the same as the command-line arguments, except
     with underscores.  The `keep_class_annotations` argument can be true, or a
@@ -481,7 +487,7 @@ def strip_file_to_string(filename, to_empty=False, strip_nl=False, no_ast=False,
 
     # Create the HintStripper and call its stripping method.
     stripper = HintStripper(to_empty, strip_nl, no_ast, no_colon_move, no_equal_move,
-                            only_assigns_and_defs, keep_class_annotations)
+                            only_assigns_and_defs, keep_class_annotations, legacy_output)
     processed_code = stripper.strip_type_hints_from_file(filename)
 
     # Parse the code into an AST as an error check.
@@ -496,17 +502,18 @@ def strip_file_to_string(filename, to_empty=False, strip_nl=False, no_ast=False,
     if not only_test_for_changes:
         return processed_code
     else:
-        # Need to tokenize and untokenize because tokenizer's round-trip guarantee does
-        # not guarantee spaces within lines (but usually works).
+        # The legacy output can change spacing even where nothing was stripped, so
+        # compare with the unchanged code from the same output method.
         original_tokens = TokenList()
         original_tokens.read_from_file(filename)
-        original_tokens_untokenized = original_tokens.untokenize()
-        return not original_tokens_untokenized == processed_code
+        original = (original_tokens.untokenize() if legacy_output
+                    else original_tokens.to_source())
+        return not original == processed_code
 
 def strip_string_to_string(code_string, to_empty=False, strip_nl=False, no_ast=False,
                            no_colon_move=False, no_equal_move=False,
                            only_assigns_and_defs=False, only_test_for_changes=False,
-                           keep_class_annotations=None):
+                           keep_class_annotations=None, legacy_output=False):
     """Functional interface to strip hints from the string `code_string`.
     The remaining arguments are the same as the command-line arguments, except
     with underscores.  The `keep_class_annotations` argument can be true, or a
@@ -518,7 +525,7 @@ def strip_string_to_string(code_string, to_empty=False, strip_nl=False, no_ast=F
 
     # Create the HintStripper and call its stripping method.
     stripper = HintStripper(to_empty, strip_nl, no_ast,  no_colon_move, no_equal_move,
-                            only_assigns_and_defs, keep_class_annotations)
+                            only_assigns_and_defs, keep_class_annotations, legacy_output)
     processed_code = stripper.strip_type_hints_from_string(code_string)
 
     # Parse the code into an AST as an error check.
@@ -532,16 +539,17 @@ def strip_string_to_string(code_string, to_empty=False, strip_nl=False, no_ast=F
     if not only_test_for_changes:
         return processed_code
     else:
-        # Need to tokenize and untokenize because tokenizer's round-trip guarantee does
-        # not guarantee spaces within lines (but usually works).
+        # The legacy output can change spacing even where nothing was stripped, so
+        # compare with the unchanged code from the same output method.
         original_tokens = TokenList()
         original_tokens.read_from_string(code_string)
-        original_tokens_untokenized = original_tokens.untokenize()
-        return not original_tokens_untokenized == processed_code
+        original = (original_tokens.untokenize() if legacy_output
+                    else original_tokens.to_source())
+        return not original == processed_code
 
 def strip_on_import(calling_module_filename, to_empty=False, strip_nl=False, no_ast=False,
                     no_colon_move=False, no_equal_move=False, only_assigns_and_defs=False,
-                    py3_also=False, keep_class_annotations=None):
+                    py3_also=False, keep_class_annotations=None, legacy_output=False):
     """The function can usually just be called with `__file__` for the
     `module_filename` argument.  It runs `strip_hints` with the specified
     options on all files that are imported.
@@ -550,7 +558,7 @@ def strip_on_import(calling_module_filename, to_empty=False, strip_nl=False, no_
     # Could also have an option to load a '.py.stripped' file instead of the
     # actual file, to reduce overhead for actual version not in development.
     stripper = HintStripper(to_empty, strip_nl, no_ast,  no_colon_move, no_equal_move,
-                            only_assigns_and_defs, keep_class_annotations)
+                            only_assigns_and_defs, keep_class_annotations, legacy_output)
     import_hooks.register_stripper_fun(calling_module_filename,
                                        stripper.strip_type_hints_from_file,
                                        py3_also=py3_also)
@@ -629,6 +637,23 @@ def parse_command_line():
                         `dataclasses.dataclass` and the subclasses of
                         `typing.NamedTuple` and `typing.TypedDict` (or their
                         `typing_extensions` versions).""")
+    parser.add_argument("--legacy-output", action="store_true",
+                        default=default_legacy_output,
+                        help="""Use the output method of strip-hints 0.1.13 and
+                        earlier.  That method rebuilds the whole file from its
+                        tokens with Python's `tokenize.untokenize` function, so
+                        lines that contain no hints can come out slightly
+                        different from the input file: tabs between tokens
+                        become spaces, the spacing before backslash line
+                        continuations and between adjacent string literals can
+                        change, and on some Python 3.12 patch releases
+                        f-strings with escaped braces cause a `SyntaxError`.
+                        These differences depend on the Python version.  With
+                        `--to-empty`, extra spaces are also left where hints
+                        were removed.  The default method copies everything
+                        except the stripped hints exactly as in the input
+                        file.  This option may be removed in a future
+                        version.""")
 
     cmdline_args = parser.parse_args()
     return cmdline_args
@@ -648,7 +673,7 @@ def process_command_line():
     processed_code = strip_file_to_string(code_file, args.to_empty, args.strip_nl,
                           args.no_ast, args.no_colon_move, args.no_equal_move,
                           args.only_assigns_and_defs, args.only_test_for_changes,
-                          keep_class_annotations)
+                          keep_class_annotations, args.legacy_output)
 
     if args.inplace:
         args.outfile = [code_file]

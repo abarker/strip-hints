@@ -31,7 +31,7 @@ print(xxx); print(e)
 #tree: Dict[t
 #        ] = 4
 # Explicit line-continuation backslashes seem to work OK:
-tree        \
+tree         \
           = 4
 
 # Always OK to break inside nesting level that will be retained.

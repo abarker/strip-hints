@@ -104,6 +104,19 @@ The command-line options are as follows:
    is selected and such a situation occurs an exception is raised.  See the
    Limitations section below for more information.  Not recommended.
 
+``--legacy-output``
+   Use the output method of strip-hints 0.1.13 and earlier.  That method
+   rebuilds the whole file from its tokens with Python's
+   ``tokenize.untokenize`` function, so lines that contain no hints can come
+   out slightly different from the input file: tabs between tokens become
+   spaces, the spacing before backslash line continuations and between
+   adjacent string literals can change, and on some Python 3.12 patch releases
+   f-strings with escaped braces cause a ``SyntaxError``.  These differences
+   depend on the Python version.  With ``--to-empty``, extra spaces are also
+   left where hints were removed.  The default method copies everything except
+   the stripped hints exactly as in the input file.  This option may be
+   removed in a future version.
+
 If you are using the development repo you can just run the file
 ``strip_hints.py`` in the ``bin`` directory of the repo::
 
@@ -189,7 +202,7 @@ are the default settings):
    from strip_hints import strip_on_import
    strip_on_import(__file__, to_empty=False, no_ast=False, no_colon_move=False,
                    only_assigns_and_defs=False, py3_also=False,
-                   keep_class_annotations=None)
+                   keep_class_annotations=None, legacy_output=False)
 
 By default Python 3 code is ignored unless ``py3_also`` is set.  The first
 argument is the file path of the calling module.
@@ -209,7 +222,8 @@ The option settings here are all the default values:
                                       no_equal_move=False,
                                       only_assigns_and_defs=False,
                                       only_test_for_changes=False,
-                                      keep_class_annotations=None)
+                                      keep_class_annotations=None,
+                                      legacy_output=False)
 
 To strip code that is originally in a string, rather than reading from a file,
 the function ``strip_string_to_string`` takes the same arguments as
@@ -279,7 +293,8 @@ the level count inside parentheses, brackets, and curly braces.
 
 In the most basic usage the sequence of tokens originally read from the file is
 never changed; some tokens just have their string values set to whitespace or
-to a pound sign before the untokenize operation.
+to a pound sign.  The output is the original code with the new strings of
+those tokens substituted in, so everything else is copied exactly.
 
 The gory details of the algorithm are discussed in the docstring for
 ``strip_hints_main.py``.  The method should be fairly robust.

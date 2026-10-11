@@ -21,14 +21,14 @@ string = 4
 if m == ")": string += m
 else: string = m + string
 
-if m == ")":\
+if m == ")": \
     string += m
-else:\
+else: \
     string = m + string
 
-if m == ")":\
+if m == ")": \
     string += m
-else:\
+else: \
     string = m + string
 
 if m == ")": # comment
