@@ -1,6 +1,10 @@
 strip-hints
 ===========
 
+.. image:: https://github.com/abarker/strip-hints/actions/workflows/tests.yml/badge.svg
+   :target: https://github.com/abarker/strip-hints/actions/workflows/tests.yml
+   :alt: Tests
+
 This package provides a command-line command and a corresponding importable
 function that strips type hints from Python code files.  The stripping process
 leaves runnable code, assuming the rest of the code is runnable in the
