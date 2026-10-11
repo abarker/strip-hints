@@ -1,4 +1,3 @@
-
 strip-hints
 ===========
 
@@ -19,8 +18,9 @@ last version that runs on Python 2 is 0.1.10.
 This project also contains a general-purpose class named ``TokenList`` which
 allows lists of Python tokens to be operated on using an interface similar to
 that of Python strings.  In particular, a ``split`` method is used for much of
-the processing in stripping hints.  This module could be useful for doing other
-things with Python at the token level.
+the processing in stripping hints, and a ``to_source`` method returns the
+source code with any changed token strings substituted in.  This module could
+be useful for doing other things with Python at the token level.
 
 Installing the code
 -------------------
@@ -29,9 +29,20 @@ To install from PyPI using pip use::
 
    pip install strip-hints
 
-To install the most-recent development version first clone or download the
-project from `this GitHub repository
-<https://github.com/abarker/strip-hints>`_.
+To install the most-recent development version from `this GitHub repository
+<https://github.com/abarker/strip-hints>`_ use::
+
+   pip install git+https://github.com/abarker/strip-hints
+
+Alternately, you can clone or download the repository and install it with pip::
+
+   cd <pathToMainProjectDirectory>
+   pip install .  # use -e for development mode
+
+If you are using the development repo you can also just run the file
+``strip_hints.py`` in the ``bin`` directory of the repo::
+
+   python strip_hints.py your_file_with_hints.py
 
 Running the code
 ----------------
@@ -40,25 +51,26 @@ After installing with pip you can run the console script ``strip-hints``::
 
    strip-hints your_file_with_hints.py
 
-The code runs with Python 3.6 and later.  The processed code is written to
-stdout, in the same encoding and with the same line endings as the input file.
-The AST checker that is run on the processed code checks the code against
-whatever version of Python the script is run with.
+The processed code is written to stdout, in the same encoding and with the
+same line endings as the input file.  The AST checker that is run on the
+processed code checks the code against whatever version of Python the script is
+run with.
 
-The command-line options are as follows:
+The command-line options are as follows.  None of them are set by default.
 
 ``--outfile`` (``-o``)
    Write the output to a file with the pathname passed in.  Files will be
    silently overwritten if they already exist.
    If this argument is omitted the output is written to stdout.
-   
+
 ``--inplace``
    Modify the input code file inplace; code will be replaced with the stripped
    code.  This is the same as passing in the code file's name as the output file.
 
 ``--to-empty``
-   Map removed code to empty strings rather than spaces.  This is easier to read,
-   but does not preserve columns.  Default is false.
+   Map removed code to empty strings rather than spaces, and also remove the
+   whitespace before it.  This is easier to read, but does not preserve columns.
+   Line numbers are still preserved.
 
 ``--strip-nl``
    Also strip non-logical newline tokens inside type hints.  These occur, for
@@ -70,12 +82,11 @@ The command-line options are as follows:
 
 ``--no-ast``
    Do not parse the resulting code with the Python ``ast`` module to check it.
-   Default is false.
 
 ``--only-assigns-and-defs``
    Only strip annotated assignments and standalone type definitions, keeping
-   function signature annotations.  Python 3.5 and earlier do not implement
-   these; they first appeared in Python 3.6.  The default is false.
+   function signature annotations.  This is useful for code that will run with
+   Python 3.5, which has function annotations but not variable annotations.
 
 ``--only-test-for-changes``
    Only test if any changes would be made.  If any stripping would be done then
@@ -90,12 +101,12 @@ The command-line options are as follows:
 ``--keep-std-class-annotations`` (``-k``)
    Keep the annotations in the bodies of classes where they define fields, for
    the standard classes only, such as dataclasses.  See the section on
-   dataclasses below.  Default is false.
+   dataclasses below.
 
 ``--no-colon-move``
    Do not move colons to fix line breaks that occur in the hints for the
-   function return type.  Default is false.  See the Limitations section below
-   for more information.  Not recommended.
+   function return type.  See the Limitations section below for more
+   information.  Not recommended.
 
 ``--no-equal-move``
    Do not move the assignment with ``=`` when needed to fix annotated
@@ -117,16 +128,6 @@ The command-line options are as follows:
    left where hints were removed.  The default method copies everything except
    the stripped hints exactly as in the input file.  This option may be
    removed in a future version.
-
-If you are using the development repo you can just run the file
-``strip_hints.py`` in the ``bin`` directory of the repo::
-
-   python strip_hints.py your_file_with_hints.py
-
-Alternately, you can install the development repo with pip::
-
-   cd <pathToMainProjectDirectory> 
-   pip install .  # use -e for development mode
 
 Dataclasses and similar classes
 -------------------------------
@@ -193,16 +194,19 @@ Automatically running on import
 
 A function can be called to automatically strip the type hints from all future
 imports that are in the same directory as the calling module.  For a package
-the function call can be placed in ``__init__.py``, for example.
+the function call can be placed in ``__init__.py``, for example.  This can be
+used to run code with hints such as ``list[int]`` or ``int | None`` on Python
+versions that cannot evaluate them.
 
 The function can be called as follows, with options set as desired (these
-are the default settings):
+are the default settings, except for ``py3_also``):
 
 .. code-block:: python
 
    from strip_hints import strip_on_import
-   strip_on_import(__file__, to_empty=False, no_ast=False, no_colon_move=False,
-                   only_assigns_and_defs=False, py3_also=False,
+   strip_on_import(__file__, to_empty=False, strip_nl=False, no_ast=False,
+                   no_colon_move=False, no_equal_move=False,
+                   only_assigns_and_defs=False, py3_also=True,
                    keep_class_annotations=None, legacy_output=False)
 
 The ``py3_also`` argument must be set true, since otherwise the function does
@@ -213,7 +217,7 @@ compatibility.  The first argument is the file path of the calling module.
 Calling from a Python program
 -----------------------------
 
-To strip the comments from a source file from within a Python program,
+To strip the type hints from a source file from within a Python program,
 returning a string containing the code, the functional interface is as follows.
 The option settings here are all the default values:
 
@@ -232,10 +236,16 @@ To strip code that is originally in a string, rather than reading from a file,
 the function ``strip_string_to_string`` takes the same arguments as
 ``strip_file_to_string`` except that the first argument is ``code_string``.
 
-If ``only_test_for_changes`` is true then a boolean is returned which is true iff
+If ``only_test_for_changes`` is true then a boolean is returned which is true if
 some changes would be made.  The ``keep_class_annotations`` argument can be
 ``True`` for the standard names, or a comma-separated string or a list of names
 to add to them.
+
+If the stripped code cannot be parsed then a ``SyntaxError`` is raised, unless
+``no_ast`` is true.  Its message says whether the input code itself can be
+parsed.  If ``no_colon_move`` or ``no_equal_move`` is true and a hint has a
+line break that would need the move, a ``StripHintsException`` is raised.  It
+can be imported from ``strip_hints``.
 
 Limitations
 -----------
@@ -249,13 +259,13 @@ One example is when a line break occurs in the argument list of a type
 hint in an annotated assignment:
 
 .. code-block:: python
- 
+
    x: List[int,
            int] = [1,2]
 
 The program currently handles this by removing the newlines up to the ``=``
 sign.  Any comments on those lines are also stripped, since otherwise they
-cause syntax errors.  Empty lines are added to the end to keep to total number
+cause syntax errors.  Empty lines are added to the end to keep the total number
 of lines the same.  The ``--no-equal-move`` argument turns this off, in which
 case situations like those above raise exceptions.  (As a workaround if
 necessary to use ``--no-equal-move``, using an explicit backslash line
@@ -275,6 +285,11 @@ always nested inside parentheses.
 
 The program currently only handles simple annotated expressions (e.g.,
 it handles ``my_class.x: int`` and ``my_list[2]: int`` but not ``(x): int``).
+
+Only the hints are removed.  Imports, such as those from ``typing``, are kept,
+as are runtime uses of typing such as ``cast(...)``, ``TypeVar``, and
+``@overload``.  Unused imports can be removed afterward with a tool such as
+``autoflake`` or ``ruff check --select F401 --fix``.
 
 The stripped code is checked by parsing it with the Python version that runs
 strip-hints, so strip-hints must be run with a version that can parse the input
@@ -327,9 +342,16 @@ Before version 0.2.0 the program was also run on the 5,580 Python files of the
 Python 3.12 standard library and two sets of installed packages, and all of
 them were stripped to code that parses.  Earlier versions were run on the Mypy
 source code.  The Bash script ``test/strip_and_colordiff.bash`` runs the
-program on one or more files and shows the differences with colordiff, for
+program on one or more files and shows the differences with ``colordiff``, for
 inspection.
 
 Some edge cases may well remain to cause problems.  Please report bugs on the
 GitHub issues page.
 
+Changes and license
+-------------------
+
+The changes in each version are listed in the `changelog
+<https://github.com/abarker/strip-hints/blob/master/CHANGELOG.rst>`_.  The code
+is released under the `MIT license
+<https://github.com/abarker/strip-hints/blob/master/LICENSE.txt>`_.
