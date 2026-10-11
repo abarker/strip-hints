@@ -3,6 +3,61 @@
 Changelog
 =========
 
+0.2.0 (unreleased)
+------------------
+
+Changes to the output:
+
+* Everything except the stripped hints is now copied exactly from the input
+  file.  Previously the output was rebuilt from the tokens with Python's
+  ``tokenize.untokenize``, which could change lines without hints: tabs
+  between tokens became spaces, and the spacing before backslash line
+  continuations and between adjacent string literals could change, depending
+  on the Python version.  The new ``--legacy-output`` option restores the old
+  method.
+
+* With ``--to-empty`` the hints are now removed along with the whitespace
+  before them, so ``def f(a: int, b: str = 'x') -> None:`` becomes
+  ``def f(a, b = 'x'):`` instead of ``def f(a , b  = 'x')  :`` (#14).
+
+New features:
+
+* The ``--keep-std-class-annotations`` (``-k``) option keeps the annotations
+  in the bodies of dataclasses and ``NamedTuple`` and ``TypedDict``
+  subclasses, where they define fields.  The ``--keep-class-annotations``
+  option takes a comma-separated list of further names, such as ``pydantic``
+  or ``attrs`` (#15, #16).
+
+* The ``--legacy-output`` option, described above.
+
+Bug fixes:
+
+* Files ending in a comment without a final newline no longer crash on
+  Python 3.7 and 3.8 (#4).
+
+* Escaped braces in f-strings (``{{`` and ``}}``) no longer cause later
+  annotations to be left unstripped on Python 3.12 and later.
+
+* F-strings with escaped braces after a backslash escape no longer cause a
+  ``SyntaxError`` on some Python 3.12 patch releases.
+
+* Files with a coding comment for an encoding other than UTF-8 no longer
+  crash.
+
+* The command line writes its output in the encoding of the input file and
+  keeps its line endings, so CRLF line endings are no longer doubled on
+  Windows and a UTF-8 BOM is kept (#20).
+
+* Extension modules can be imported again after ``strip_on_import`` is
+  called.
+
+Other changes:
+
+* Python 3.6 or later is now required.  The last version that runs on Python
+  2 is 0.1.10.
+
+* The unneeded runtime dependency on ``wheel`` was removed.
+
 0.1.13 (2025-02-20)
 -------------------
 
