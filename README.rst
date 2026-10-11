@@ -41,8 +41,9 @@ After installing with pip you can run the console script ``strip-hints``::
    strip-hints your_file_with_hints.py
 
 The code runs with Python 3.6 and later.  The processed code is written to
-stdout, in the same encoding and with the same line endings as the input file.  The AST checker that is run on the processed code checks the code
-against whatever version of Python the script is run with.
+stdout, in the same encoding and with the same line endings as the input file.
+The AST checker that is run on the processed code checks the code against
+whatever version of Python the script is run with.
 
 The command-line options are as follows:
 
@@ -307,11 +308,28 @@ those tokens substituted in, so everything else is copied exactly.
 The gory details of the algorithm are discussed in the docstring for
 ``strip_hints_main.py``.  The method should be fairly robust.
 
-Bugs
-----
+Testing and bugs
+----------------
 
-The code has been run on the Mypy source code and on some other examples, with
-the results parsed into ASTs and also visually inspected via diff.  Some edge
-cases may well remain to cause problems.  There is a Bash script in the ``test``
-directory which runs the program on test files and shows the diffs.
+The tests use pytest and are in the ``test`` directory.  They cover the
+options, the command line, the functional interfaces, the reported issues, and
+a set of case files in ``test/cases`` whose stripped output is compared with
+saved results.  To run them from the repository root::
+
+   pip install pytest
+   python -m pytest
+
+The tests are run by GitHub Actions on Python 3.7 to 3.15 on Linux and on one
+Python version on Windows.  Python 3.6 is supported but no longer tested, since
+GitHub no longer provides it.
+
+Before version 0.2.0 the program was also run on the 5,580 Python files of the
+Python 3.12 standard library and two sets of installed packages, and all of
+them were stripped to code that parses.  Earlier versions were run on the Mypy
+source code.  The Bash script ``test/strip_and_colordiff.bash`` runs the
+program on one or more files and shows the differences with colordiff, for
+inspection.
+
+Some edge cases may well remain to cause problems.  Please report bugs on the
+GitHub issues page.
 
